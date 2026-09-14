@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>archon</AssemblyName>
+    <RootNamespace>Archon.Cli</RootNamespace>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>archon</ToolCommandName>
+    <Description>Mimari Jandarma — .NET solution architecture firewall.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Spectre.Console" Version="0.57.2" />
+    <PackageReference Include="Spectre.Console.Cli" Version="0.55.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Archon.Analysis\Archon.Analysis.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,16 @@
+﻿using Archon.Cli;
+using Spectre.Console.Cli;
+
+var app = new CommandApp();
+app.Configure(config =>
+{
+    config.SetApplicationName("archon");
+    config.ValidateExamples();
+    config.AddCommand<AnalyzeCommand>("analyze")
+        .WithDescription("Solution grafını çıkarır ve mimari kuralları uygular.")
+        .WithExample("analyze", "samples/ContosoShop/ContosoShop.sln", "--rules", "archon.yaml", "--out", "artifacts/report.html");
+    config.AddCommand<InitCommand>("init")
+        .WithDescription("Örnek archon.yaml dosyası yazar.");
+});
+
+return app.Run(args);
