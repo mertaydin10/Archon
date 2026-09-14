@@ -1,0 +1,30 @@
+name: Contoso Shop
+solution: samples/ContosoShop/ContosoShop.sln
+
+rules:
+  - id: domain-isolation
+    kind: deny
+    description: Domain, Infrastructure veya Api'ye bağlanamaz.
+    from: "*.Domain"
+    to:
+      - "*.Infrastructure"
+      - "*.Api"
+
+  - id: catalog-must-not-know-payments
+    kind: deny
+    description: Catalog, Payments'a proje referansı veremez.
+    from: "*Catalog*"
+    to: "*Payments*"
+
+  - id: clean-architecture
+    kind: layers
+    description: Dış katman içe bağlanır; tersi yasak.
+    layers:
+      - "*.Api"
+      - "*.Infrastructure"
+      - "*.Application"
+      - "*.Domain"
+
+  - id: no-cycles
+    kind: acyclic
+    description: Proje grafı döngü içeremez.

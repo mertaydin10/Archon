@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Contoso.Application\Contoso.Application.csproj" />
+    <ProjectReference Include="..\Contoso.Infrastructure\Contoso.Infrastructure.csproj" />
+    <ProjectReference Include="..\Contoso.Catalog\Contoso.Catalog.csproj" />
+  </ItemGroup>
+</Project>
