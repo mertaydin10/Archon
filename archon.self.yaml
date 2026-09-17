@@ -1,0 +1,24 @@
+name: Archon
+solution: Archon.sln
+
+rules:
+  - id: layers
+    kind: layers
+    description: CLI analiz motoruna, analiz motoru çekirdeğe bağlanır.
+    layers:
+      - "*.Cli"
+      - "*.Analysis"
+      - "*.Core"
+
+  - id: src-must-not-depend-on-tests
+    kind: deny
+    description: Üretim kodu test projelerine bağlanamaz.
+    from:
+      - "Archon.Core"
+      - "Archon.Analysis"
+      - "Archon.Cli"
+    to: "*Tests*"
+
+  - id: no-cycles
+    kind: acyclic
+    description: Proje grafı döngü içeremez.
