@@ -16,6 +16,25 @@ rules:
     from: "*Catalog*"
     to: "*Payments*"
 
+  - id: catalog-surface
+    kind: allow
+    description: Catalog yalnızca Domain'e bağlanabilir.
+    from: "*Catalog*"
+    to:
+      - "*.Domain"
+
+  - id: domain-no-infra-namespace
+    kind: namespace-deny
+    description: Domain kaynakları Infrastructure namespace'ini import edemez.
+    from: "*.Domain"
+    to: "Contoso.Infrastructure*"
+
+  - id: catalog-no-payments-namespace
+    kind: namespace-deny
+    description: Catalog kaynakları Payments namespace'ini import edemez.
+    from: "*Catalog*"
+    to: "Contoso.Payments*"
+
   - id: clean-architecture
     kind: layers
     description: Dış katman içe bağlanır; tersi yasak.
