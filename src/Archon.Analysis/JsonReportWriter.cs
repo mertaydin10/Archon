@@ -30,7 +30,9 @@ public static class JsonReportWriter
                 v.Message,
                 v.From,
                 v.To,
-                cycle = v.Cycle
+                cycle = v.Cycle,
+                filePath = v.FilePath,
+                line = v.Line
             }),
             graph = new
             {

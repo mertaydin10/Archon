@@ -63,16 +63,22 @@ public static class HtmlReportWriter
         }
         else
         {
-            sb.Append("<table><thead><tr><th>Kural</th><th>Şiddet</th><th>Kenar</th><th>Açıklama</th></tr></thead><tbody>");
+            sb.Append("<table><thead><tr><th>Kural</th><th>Şiddet</th><th>Kenar</th><th>Konum</th><th>Açıklama</th></tr></thead><tbody>");
             foreach (var violation in report.Violations)
             {
                 var edge = violation.Cycle is { Count: > 0 }
                     ? string.Join(" → ", violation.Cycle.Append(violation.Cycle[0]))
                     : $"{violation.From} → {violation.To}";
+                var location = string.IsNullOrWhiteSpace(violation.FilePath)
+                    ? "—"
+                    : violation.Line is int line
+                        ? $"{violation.FilePath}:{line}"
+                        : violation.FilePath;
                 sb.Append("<tr><td>").Append(Encode(violation.RuleId)).Append("</td>");
                 sb.Append("<td class=\"sev ").Append(violation.Severity.ToString().ToLowerInvariant()).Append("\">")
                     .Append(Encode(violation.Severity.ToString())).Append("</td>");
                 sb.Append("<td>").Append(Encode(edge)).Append("</td>");
+                sb.Append("<td>").Append(Encode(location)).Append("</td>");
                 sb.Append("<td>").Append(Encode(violation.Message)).Append("</td></tr>");
             }
 

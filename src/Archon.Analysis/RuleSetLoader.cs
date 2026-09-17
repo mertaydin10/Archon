@@ -55,6 +55,20 @@ public sealed class RuleSetLoader
                 ReadPatterns(document.From, "from"),
                 ReadPatterns(document.To, "to"),
                 ReadExceptions(document.Except)),
+            "allow" => new AllowRule(
+                document.Id.Trim(),
+                description,
+                severity,
+                ReadPatterns(document.From, "from"),
+                ReadPatterns(document.To, "to"),
+                ReadExceptions(document.Except)),
+            "namespace-deny" => new NamespaceDenyRule(
+                document.Id.Trim(),
+                description,
+                severity,
+                ReadPatterns(document.From, "from"),
+                ReadPatterns(document.To, "to"),
+                ReadExceptions(document.Except)),
             "layers" => new LayerRule(
                 document.Id.Trim(),
                 description,
