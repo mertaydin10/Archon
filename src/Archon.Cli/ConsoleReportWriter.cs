@@ -26,6 +26,7 @@ internal static class ConsoleReportWriter
         table.AddColumn("Kural");
         table.AddColumn("Şiddet");
         table.AddColumn("Kenar");
+        table.AddColumn("Konum");
         table.AddColumn("Açıklama");
 
         foreach (var violation in report.Violations)
@@ -36,10 +37,16 @@ internal static class ConsoleReportWriter
             var severity = violation.Severity == RuleSeverity.Error
                 ? "[red]HATA[/]"
                 : "[yellow]UYARI[/]";
+            var location = string.IsNullOrWhiteSpace(violation.FilePath)
+                ? "—"
+                : violation.Line is int line
+                    ? $"{violation.FilePath}:{line}"
+                    : violation.FilePath!;
             table.AddRow(
                 Markup.Escape(violation.RuleId),
                 severity,
                 Markup.Escape(edge),
+                Markup.Escape(location),
                 Markup.Escape(violation.Message));
         }
 

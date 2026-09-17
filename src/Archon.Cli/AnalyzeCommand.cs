@@ -17,11 +17,11 @@ internal sealed class AnalyzeSettings : CommandSettings
     public string? Rules { get; init; }
 
     [CommandOption("-f|--format <FORMAT>")]
-    [Description("Çıktı biçimi: console, json, html")]
+    [Description("Çıktı biçimi: console, json, html, sarif")]
     public string Format { get; init; } = "console";
 
     [CommandOption("-o|--out <FILE>")]
-    [Description("json/html için dosya yolu")]
+    [Description("json/html/sarif için dosya yolu")]
     public string? Output { get; init; }
 }
 
@@ -31,14 +31,12 @@ internal sealed class AnalyzeCommand : Command<AnalyzeSettings>
     {
         try
         {
-            var rulesPath = ResolveRulesPath(settings.Rules);
-            var ruleSet = File.Exists(rulesPath)
-                ? new RuleSetLoader().Load(rulesPath)
-                : new RuleSet("Archon", null, [new AcyclicRule("no-cycles", "Proje grafı döngü içeremez.", RuleSeverity.Warning)]);
-
-            var solutionPath = ResolveSolutionPath(settings.Path, ruleSet);
-            var graph = new SolutionGraphLoader().Load(solutionPath);
-            var report = new ArchitectureAnalyzer().Analyze(graph, ruleSet, solutionPath);
+            var workspace = ArchonWorkspace.Load(settings.Path, settings.Rules);
+            var report = new ArchitectureAnalyzer().Analyze(
+                workspace.Graph,
+                workspace.RuleSet,
+                workspace.SolutionPath,
+                workspace.Sources);
 
             WriteReport(report, settings);
             return report.HasErrors ? 1 : 0;
@@ -50,38 +48,6 @@ internal sealed class AnalyzeCommand : Command<AnalyzeSettings>
         }
     }
 
-    private static string ResolveRulesPath(string? rules)
-    {
-        if (!string.IsNullOrWhiteSpace(rules))
-            return Path.GetFullPath(rules);
-
-        return Path.GetFullPath("archon.yaml");
-    }
-
-    private static string ResolveSolutionPath(string? path, RuleSet ruleSet)
-    {
-        if (!string.IsNullOrWhiteSpace(path))
-        {
-            var full = Path.GetFullPath(path);
-            if (Directory.Exists(full))
-            {
-                var solutions = Directory.GetFiles(full, "*.sln", SearchOption.TopDirectoryOnly);
-                if (solutions.Length == 1)
-                    return solutions[0];
-                if (solutions.Length == 0)
-                    throw new InvalidOperationException($"'{full}' içinde .sln yok.");
-                throw new InvalidOperationException($"'{full}' içinde birden fazla .sln var. Dosyayı açıkça ver.");
-            }
-
-            return full;
-        }
-
-        if (!string.IsNullOrWhiteSpace(ruleSet.SolutionPath))
-            return ruleSet.SolutionPath;
-
-        throw new InvalidOperationException("Solution yolu verilmedi. analyze <dosya.sln> veya archon.yaml içine solution yaz.");
-    }
-
     private static void WriteReport(AnalysisReport report, AnalyzeSettings settings)
     {
         var format = settings.Format.Trim().ToLowerInvariant();
@@ -89,6 +55,11 @@ internal sealed class AnalyzeCommand : Command<AnalyzeSettings>
         {
             case "json":
                 WriteFileOrStdout(settings.Output, JsonReportWriter.Write(report));
+                break;
+            case "sarif":
+                var sarifPath = settings.Output ?? Path.Combine("artifacts", "archon.sarif");
+                WriteFileOrStdout(sarifPath, SarifReportWriter.Write(report));
+                AnsiConsole.MarkupLine($"[grey]SARIF rapor:[/] {Markup.Escape(Path.GetFullPath(sarifPath))}");
                 break;
             case "html":
                 var html = HtmlReportWriter.Write(report);
