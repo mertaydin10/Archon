@@ -2,8 +2,13 @@ namespace Archon.Core;
 
 public sealed class ArchitectureAnalyzer
 {
-    public AnalysisReport Analyze(ProjectGraph graph, RuleSet ruleSet, string solutionPath)
+    public AnalysisReport Analyze(
+        ProjectGraph graph,
+        RuleSet ruleSet,
+        string solutionPath,
+        SourceIndex? sources = null)
     {
+        sources ??= SourceIndex.Empty;
         var violations = new List<Violation>();
         foreach (var rule in ruleSet.Rules)
         {
@@ -11,6 +16,12 @@ public sealed class ArchitectureAnalyzer
             {
                 case DenyRule deny:
                     violations.AddRange(EvaluateDeny(graph, deny));
+                    break;
+                case AllowRule allow:
+                    violations.AddRange(EvaluateAllow(graph, allow));
+                    break;
+                case NamespaceDenyRule namespaces:
+                    violations.AddRange(EvaluateNamespaceDeny(namespaces, sources));
                     break;
                 case LayerRule layers:
                     violations.AddRange(EvaluateLayers(graph, layers));
@@ -30,6 +41,8 @@ public sealed class ArchitectureAnalyzer
                 .ThenBy(v => v.RuleId, StringComparer.OrdinalIgnoreCase)
                 .ThenBy(v => v.From, StringComparer.OrdinalIgnoreCase)
                 .ThenBy(v => v.To, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(v => v.FilePath, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(v => v.Line)
                 .ToArray());
     }
 
@@ -48,6 +61,46 @@ public sealed class ArchitectureAnalyzer
                 rule.Description,
                 edge.From,
                 edge.To);
+        }
+    }
+
+    private static IEnumerable<Violation> EvaluateAllow(ProjectGraph graph, AllowRule rule)
+    {
+        foreach (var edge in graph.Edges)
+        {
+            if (!MatchesAny(rule.From, edge.From))
+                continue;
+            if (MatchesAny(rule.To, edge.To))
+                continue;
+            if (IsExcepted(rule.Exceptions, edge.From, edge.To))
+                continue;
+
+            yield return new Violation(
+                rule.Id,
+                rule.Severity,
+                $"{rule.Description} {edge.From} yalnızca izinli hedeflere bağlanabilir; {edge.To} listede yok.",
+                edge.From,
+                edge.To);
+        }
+    }
+
+    private static IEnumerable<Violation> EvaluateNamespaceDeny(NamespaceDenyRule rule, SourceIndex sources)
+    {
+        foreach (var import in sources.Imports)
+        {
+            if (!MatchesAny(rule.From, import.ProjectName) || !MatchesAny(rule.To, import.Namespace))
+                continue;
+            if (IsExcepted(rule.Exceptions, import.ProjectName, import.Namespace))
+                continue;
+
+            yield return new Violation(
+                rule.Id,
+                rule.Severity,
+                $"{rule.Description} {import.ProjectName} → {import.Namespace}",
+                import.ProjectName,
+                import.Namespace,
+                FilePath: import.FilePath,
+                Line: import.Line);
         }
     }
 

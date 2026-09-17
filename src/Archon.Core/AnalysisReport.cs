@@ -6,7 +6,9 @@ public sealed record Violation(
     string Message,
     string? From,
     string? To,
-    IReadOnlyList<string>? Cycle = null);
+    IReadOnlyList<string>? Cycle = null,
+    string? FilePath = null,
+    int? Line = null);
 
 public sealed record AnalysisReport(
     string RuleSetName,

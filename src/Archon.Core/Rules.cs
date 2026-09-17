@@ -29,6 +29,22 @@ public sealed record AcyclicRule(
     string Description,
     RuleSeverity Severity) : ArchitectureRule(Id, Description, Severity);
 
+public sealed record NamespaceDenyRule(
+    string Id,
+    string Description,
+    RuleSeverity Severity,
+    IReadOnlyList<string> From,
+    IReadOnlyList<string> To,
+    IReadOnlyList<RuleException> Exceptions) : ArchitectureRule(Id, Description, Severity);
+
+public sealed record AllowRule(
+    string Id,
+    string Description,
+    RuleSeverity Severity,
+    IReadOnlyList<string> From,
+    IReadOnlyList<string> To,
+    IReadOnlyList<RuleException> Exceptions) : ArchitectureRule(Id, Description, Severity);
+
 public sealed record RuleSet(
     string Name,
     string? SolutionPath,
