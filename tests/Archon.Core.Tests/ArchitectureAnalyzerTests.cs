@@ -74,6 +74,67 @@ public sealed class ArchitectureAnalyzerTests
     }
 
     [Fact]
+    public void Allow_rule_flags_unlisted_target()
+    {
+        var graph = Graph(
+            ["Catalog", "Shop.Domain", "Payments"],
+            [("Catalog", "Payments"), ("Catalog", "Shop.Domain")]);
+        var rules = new RuleSet("shop", null,
+        [
+            new AllowRule("catalog-surface", "yalnızca Domain", RuleSeverity.Error,
+                ["*Catalog*"], ["*.Domain"], [])
+        ]);
+
+        var report = new ArchitectureAnalyzer().Analyze(graph, rules, "shop.sln");
+
+        var hit = Assert.Single(report.Violations);
+        Assert.Equal("catalog-surface", hit.RuleId);
+        Assert.Equal("Payments", hit.To);
+    }
+
+    [Fact]
+    public void Namespace_deny_reports_file_and_line()
+    {
+        var graph = Graph(["Shop.Domain"], []);
+        var sources = new SourceIndex(
+        [
+            new NamespaceImport("Shop.Domain", "Shop.Infrastructure", "Domain/Leak.cs", 3)
+        ]);
+        var rules = new RuleSet("shop", null,
+        [
+            new NamespaceDenyRule("no-infra", "import yasak", RuleSeverity.Error,
+                ["*.Domain"], ["Shop.Infrastructure*"], [])
+        ]);
+
+        var report = new ArchitectureAnalyzer().Analyze(graph, rules, "shop.sln", sources);
+
+        var hit = Assert.Single(report.Violations);
+        Assert.Equal("Domain/Leak.cs", hit.FilePath);
+        Assert.Equal(3, hit.Line);
+        Assert.Equal("Shop.Infrastructure", hit.To);
+    }
+
+    [Fact]
+    public void Explainer_returns_related_violations()
+    {
+        var graph = Graph(
+            ["Domain", "Infrastructure", "Api"],
+            [("Domain", "Infrastructure"), ("Api", "Domain")]);
+        var rules = new RuleSet("shop", null,
+        [
+            new DenyRule("domain-isolation", "hayır", RuleSeverity.Error,
+                ["Domain"], ["Infrastructure"], [])
+        ]);
+        var report = new ArchitectureAnalyzer().Analyze(graph, rules, "shop.sln");
+        var explanation = ProjectExplainer.Explain(graph, "Domain", report.Violations);
+
+        Assert.Equal(["Infrastructure"], explanation.Dependencies);
+        Assert.Equal(["Api"], explanation.Dependents);
+        Assert.Equal(["Api"], explanation.BlastRadius);
+        Assert.Contains(explanation.RelatedViolations, v => v.RuleId == "domain-isolation");
+    }
+
+    [Fact]
     public void Transitive_dependents_follow_reverse_edges()
     {
         var graph = Graph(
