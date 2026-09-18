@@ -19,6 +19,13 @@ rules:
       - "Archon.Cli"
     to: "*Tests*"
 
+  - id: core-no-cli-packages
+    kind: package-deny
+    description: Çekirdek katmanı CLI paketlerine bağlanamaz.
+    from: Archon.Core
+    packages:
+      - Spectre.Console*
+
   - id: no-cycles
     kind: acyclic
     description: Proje grafı döngü içeremez.

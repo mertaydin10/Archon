@@ -17,7 +17,14 @@ jobs:
         run: dotnet test Archon.sln --nologo
 
       - name: Kendi mimarisini doğrula
-        run: dotnet run --project src/Archon.Cli -- analyze Archon.sln --rules archon.self.yaml --format sarif --out artifacts/archon.sarif
+        run: dotnet run --project src/Archon.Cli -- analyze Archon.sln --rules archon.self.yaml --format markdown --out artifacts/archon.md
+
+      - name: Özeti GitHub'a yaz
+        if: always()
+        run: |
+          if [ -f artifacts/archon.md ]; then
+            cat artifacts/archon.md >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Contoso örneği kasıtlı olarak kırılmalı
         run: |
