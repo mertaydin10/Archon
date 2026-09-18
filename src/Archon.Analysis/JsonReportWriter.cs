@@ -23,6 +23,7 @@ public static class JsonReportWriter
             edges = report.Graph.Edges.Count,
             errorCount = report.ErrorCount,
             warningCount = report.WarningCount,
+            baselineSuppressed = report.BaselineSuppressed,
             violations = report.Violations.Select(v => new
             {
                 v.RuleId,

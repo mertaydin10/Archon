@@ -9,6 +9,10 @@ public sealed class SourceIndexLoader
         @"^\s*(?:global\s+)?using\s+(?:static\s+)?(?:[A-Za-z_][\w.]*\s*=\s*)?([A-Za-z_][\w.]*)\s*;",
         RegexOptions.CultureInvariant);
 
+    private static readonly Regex IgnoreComment = new(
+        @"archon:ignore(?:\s+([A-Za-z0-9._-]+))?",
+        RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+
     public SourceIndex Load(ProjectGraph graph)
     {
         var imports = new List<NamespaceImport>();
@@ -33,7 +37,7 @@ public sealed class SourceIndexLoader
         return new SourceIndex(imports);
     }
 
-    internal static IEnumerable<NamespaceImport> ReadImports(string projectName, string filePath)
+    public static IEnumerable<NamespaceImport> ReadImports(string projectName, string filePath)
     {
         var lineNumber = 0;
         foreach (var line in File.ReadLines(filePath))
@@ -43,8 +47,21 @@ public sealed class SourceIndexLoader
             if (!match.Success)
                 continue;
 
-            yield return new NamespaceImport(projectName, match.Groups[1].Value, filePath, lineNumber);
+            yield return new NamespaceImport(
+                projectName,
+                match.Groups[1].Value,
+                filePath,
+                lineNumber,
+                ReadSuppression(line));
         }
+    }
+
+    internal static string? ReadSuppression(string line)
+    {
+        var match = IgnoreComment.Match(line);
+        if (!match.Success)
+            return null;
+        return match.Groups[1].Success ? match.Groups[1].Value : "*";
     }
 
     private static bool IsGeneratedOrOutput(string file, string projectRoot)

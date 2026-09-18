@@ -46,6 +46,8 @@ public static class HtmlReportWriter
         sb.Append("<div class=\"eyebrow\">Archon · Mimari Jandarma</div>");
         sb.Append("<h1>").Append(Encode(report.RuleSetName)).Append("</h1>");
         sb.Append("<p class=\"meta\">").Append(Encode(report.SolutionPath)).Append("</p>");
+        if (report.BaselineSuppressed > 0)
+            sb.Append("<p class=\"meta\">").Append(report.BaselineSuppressed).Append(" ihlal baseline'da yok sayıldı.</p>");
         sb.Append("<p><span class=\"status ").Append(statusClass).Append("\">").Append(status).Append("</span></p>");
         sb.Append("</header><main>");
         sb.Append("<div class=\"cards\">");

@@ -69,6 +69,13 @@ public sealed class RuleSetLoader
                 ReadPatterns(document.From, "from"),
                 ReadPatterns(document.To, "to"),
                 ReadExceptions(document.Except)),
+            "package-deny" => new PackageDenyRule(
+                document.Id.Trim(),
+                description,
+                severity,
+                ReadPatterns(document.From, "from"),
+                ReadPatterns(document.Packages ?? document.To, "packages"),
+                ReadExceptions(document.Except)),
             "layers" => new LayerRule(
                 document.Id.Trim(),
                 description,
@@ -144,6 +151,7 @@ public sealed class RuleSetLoader
         public string? Severity { get; set; }
         public object? From { get; set; }
         public object? To { get; set; }
+        public object? Packages { get; set; }
         public List<string>? Layers { get; set; }
         public List<ExceptionDocument>? Except { get; set; }
     }
