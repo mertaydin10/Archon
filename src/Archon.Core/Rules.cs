@@ -45,6 +45,14 @@ public sealed record AllowRule(
     IReadOnlyList<string> To,
     IReadOnlyList<RuleException> Exceptions) : ArchitectureRule(Id, Description, Severity);
 
+public sealed record PackageDenyRule(
+    string Id,
+    string Description,
+    RuleSeverity Severity,
+    IReadOnlyList<string> From,
+    IReadOnlyList<string> Packages,
+    IReadOnlyList<RuleException> Exceptions) : ArchitectureRule(Id, Description, Severity);
+
 public sealed record RuleSet(
     string Name,
     string? SolutionPath,

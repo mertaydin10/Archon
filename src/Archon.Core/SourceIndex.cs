@@ -4,7 +4,8 @@ public sealed record NamespaceImport(
     string ProjectName,
     string Namespace,
     string FilePath,
-    int Line);
+    int Line,
+    string? Suppression = null);
 
 public sealed class SourceIndex
 {

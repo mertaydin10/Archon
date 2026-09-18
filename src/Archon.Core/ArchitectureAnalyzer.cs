@@ -6,9 +6,11 @@ public sealed class ArchitectureAnalyzer
         ProjectGraph graph,
         RuleSet ruleSet,
         string solutionPath,
-        SourceIndex? sources = null)
+        SourceIndex? sources = null,
+        PackageIndex? packages = null)
     {
         sources ??= SourceIndex.Empty;
+        packages ??= PackageIndex.Empty;
         var violations = new List<Violation>();
         foreach (var rule in ruleSet.Rules)
         {
@@ -22,6 +24,9 @@ public sealed class ArchitectureAnalyzer
                     break;
                 case NamespaceDenyRule namespaces:
                     violations.AddRange(EvaluateNamespaceDeny(namespaces, sources));
+                    break;
+                case PackageDenyRule packageDeny:
+                    violations.AddRange(EvaluatePackageDeny(packageDeny, packages));
                     break;
                 case LayerRule layers:
                     violations.AddRange(EvaluateLayers(graph, layers));
@@ -88,6 +93,8 @@ public sealed class ArchitectureAnalyzer
     {
         foreach (var import in sources.Imports)
         {
+            if (IsSuppressed(import.Suppression, rule.Id))
+                continue;
             if (!MatchesAny(rule.From, import.ProjectName) || !MatchesAny(rule.To, import.Namespace))
                 continue;
             if (IsExcepted(rule.Exceptions, import.ProjectName, import.Namespace))
@@ -101,6 +108,24 @@ public sealed class ArchitectureAnalyzer
                 import.Namespace,
                 FilePath: import.FilePath,
                 Line: import.Line);
+        }
+    }
+
+    private static IEnumerable<Violation> EvaluatePackageDeny(PackageDenyRule rule, PackageIndex packages)
+    {
+        foreach (var package in packages.Packages)
+        {
+            if (!MatchesAny(rule.From, package.ProjectName) || !MatchesAny(rule.Packages, package.PackageId))
+                continue;
+            if (IsExcepted(rule.Exceptions, package.ProjectName, package.PackageId))
+                continue;
+
+            yield return new Violation(
+                rule.Id,
+                rule.Severity,
+                $"{rule.Description} {package.ProjectName} → {package.PackageId}",
+                package.ProjectName,
+                package.PackageId);
         }
     }
 
@@ -138,6 +163,10 @@ public sealed class ArchitectureAnalyzer
                 cycle);
         }
     }
+
+    private static bool IsSuppressed(string? suppression, string ruleId) =>
+        suppression is "*"
+        || (suppression is not null && suppression.Equals(ruleId, StringComparison.OrdinalIgnoreCase));
 
     private static bool MatchesAny(IReadOnlyList<string> patterns, string value) =>
         patterns.Any(pattern => GlobPattern.IsMatch(pattern, value));
