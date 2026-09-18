@@ -14,6 +14,8 @@ internal static class ConsoleReportWriter
         AnsiConsole.MarkupLine($"[grey]{Markup.Escape(report.SolutionPath)}[/]");
         AnsiConsole.MarkupLine(
             $"[grey]{report.Graph.Projects.Count} proje · {report.Graph.Edges.Count} kenar · {report.ErrorCount} hata · {report.WarningCount} uyarı[/]");
+        if (report.BaselineSuppressed > 0)
+            AnsiConsole.MarkupLine($"[grey]{report.BaselineSuppressed} ihlal baseline'da yok sayıldı.[/]");
         AnsiConsole.WriteLine();
 
         if (report.Violations.Count == 0)

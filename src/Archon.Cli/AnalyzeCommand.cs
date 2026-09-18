@@ -17,12 +17,24 @@ internal sealed class AnalyzeSettings : CommandSettings
     public string? Rules { get; init; }
 
     [CommandOption("-f|--format <FORMAT>")]
-    [Description("Çıktı biçimi: console, json, html, sarif")]
+    [Description("Çıktı biçimi: console, json, html, sarif, markdown")]
     public string Format { get; init; } = "console";
 
     [CommandOption("-o|--out <FILE>")]
-    [Description("json/html/sarif için dosya yolu")]
+    [Description("json/html/sarif/markdown için dosya yolu")]
     public string? Output { get; init; }
+
+    [CommandOption("--baseline <FILE>")]
+    [Description("Bilinen ihlalleri yok saymak için baseline JSON")]
+    public string? Baseline { get; init; }
+
+    [CommandOption("--write-baseline <FILE>")]
+    [Description("Mevcut ihlalleri baseline JSON olarak yazar")]
+    public string? WriteBaseline { get; init; }
+
+    [CommandOption("--fail-on-warning")]
+    [Description("Uyarıları da hata gibi işler (çıkış kodu 1).")]
+    public bool FailOnWarning { get; init; }
 }
 
 internal sealed class AnalyzeCommand : Command<AnalyzeSettings>
@@ -36,10 +48,21 @@ internal sealed class AnalyzeCommand : Command<AnalyzeSettings>
                 workspace.Graph,
                 workspace.RuleSet,
                 workspace.SolutionPath,
-                workspace.Sources);
+                workspace.Sources,
+                workspace.Packages);
+            report = ReportPaths.Relativize(report);
+
+            if (!string.IsNullOrWhiteSpace(settings.WriteBaseline))
+            {
+                WriteFileOrStdout(settings.WriteBaseline, BaselineFile.Write(report));
+                AnsiConsole.MarkupLine($"[grey]Baseline yazıldı:[/] {Markup.Escape(Path.GetFullPath(settings.WriteBaseline))}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(settings.Baseline))
+                report = BaselineFilter.Apply(report, BaselineFile.LoadKeys(settings.Baseline));
 
             WriteReport(report, settings);
-            return report.HasErrors ? 1 : 0;
+            return report.ShouldFail(settings.FailOnWarning) ? 1 : 0;
         }
         catch (Exception ex)
         {
@@ -63,9 +86,14 @@ internal sealed class AnalyzeCommand : Command<AnalyzeSettings>
                 break;
             case "html":
                 var html = HtmlReportWriter.Write(report);
-                var output = settings.Output ?? Path.Combine("artifacts", "archon-report.html");
-                WriteFileOrStdout(output, html);
-                AnsiConsole.MarkupLine($"[grey]HTML rapor:[/] {Markup.Escape(Path.GetFullPath(output))}");
+                var htmlPath = settings.Output ?? Path.Combine("artifacts", "archon-report.html");
+                WriteFileOrStdout(htmlPath, html);
+                AnsiConsole.MarkupLine($"[grey]HTML rapor:[/] {Markup.Escape(Path.GetFullPath(htmlPath))}");
+                break;
+            case "markdown" or "md":
+                var mdPath = settings.Output ?? Path.Combine("artifacts", "archon.md");
+                WriteFileOrStdout(mdPath, MarkdownReportWriter.Write(report));
+                AnsiConsole.MarkupLine($"[grey]Markdown rapor:[/] {Markup.Escape(Path.GetFullPath(mdPath))}");
                 break;
             case "console":
                 ConsoleReportWriter.Write(report);

@@ -31,7 +31,8 @@ internal sealed class ExplainCommand : Command<ExplainSettings>
                 workspace.Graph,
                 workspace.RuleSet,
                 workspace.SolutionPath,
-                workspace.Sources);
+                workspace.Sources,
+                workspace.Packages);
             var explanation = ProjectExplainer.Explain(workspace.Graph, settings.Project.Trim(), report.Violations);
 
             AnsiConsole.MarkupLine($"[bold]{Markup.Escape(explanation.Project)}[/]");

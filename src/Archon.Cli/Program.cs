@@ -12,6 +12,8 @@ app.Configure(config =>
     config.AddCommand<ExplainCommand>("explain")
         .WithDescription("Bir projenin bağımlılıklarını, etki alanını ve ilgili ihlalleri gösterir.")
         .WithExample("explain", "Contoso.Domain");
+    config.AddCommand<ValidateCommand>("validate")
+        .WithDescription("archon.yaml dosyasını çözümlemeden doğrular.");
     config.AddCommand<InitCommand>("init")
         .WithDescription("Örnek archon.yaml dosyası yazar.");
 });

@@ -7,7 +7,8 @@ internal sealed record LoadedWorkspace(
     RuleSet RuleSet,
     string SolutionPath,
     ProjectGraph Graph,
-    SourceIndex Sources);
+    SourceIndex Sources,
+    PackageIndex Packages);
 
 internal static class ArchonWorkspace
 {
@@ -21,7 +22,8 @@ internal static class ArchonWorkspace
         var solutionPath = ResolveSolutionPath(path, ruleSet);
         var graph = new SolutionGraphLoader().Load(solutionPath);
         var sources = new SourceIndexLoader().Load(graph);
-        return new LoadedWorkspace(ruleSet, solutionPath, graph, sources);
+        var packages = new PackageIndexLoader().Load(graph);
+        return new LoadedWorkspace(ruleSet, solutionPath, graph, sources, packages);
     }
 
     public static string ResolveRulesPath(string? rules)

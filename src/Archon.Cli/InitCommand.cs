@@ -66,6 +66,13 @@ internal sealed class InitCommand : Command<InitSettings>
             from: "*Catalog*"
             to: "Contoso.Payments*"
 
+          - id: domain-no-json-package
+            kind: package-deny
+            description: Domain Newtonsoft.Json alamaz.
+            from: "*.Domain"
+            packages:
+              - Newtonsoft.Json
+
           - id: clean-architecture
             kind: layers
             description: Dış katman içe bağlanır; tersi yasak.
