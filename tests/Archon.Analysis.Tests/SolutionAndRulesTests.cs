@@ -85,6 +85,32 @@ public sealed class SolutionAndRulesTests
     }
 
     [Fact]
+    public void Yaml_parses_package_deny()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "archon-pkg-" + Guid.NewGuid().ToString("N") + ".yaml");
+        File.WriteAllText(path,
+            """
+            name: Shop
+            rules:
+              - id: domain-no-json
+                kind: package-deny
+                from: "*.Domain"
+                packages:
+                  - Newtonsoft.Json
+            """);
+        try
+        {
+            var ruleSet = new RuleSetLoader().Load(path);
+            var rule = Assert.IsType<PackageDenyRule>(Assert.Single(ruleSet.Rules));
+            Assert.Equal("Newtonsoft.Json", Assert.Single(rule.Packages));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void Source_index_reads_using_directives()
     {
         var root = CreateShop();
@@ -111,6 +137,33 @@ public sealed class SolutionAndRulesTests
         {
             Directory.Delete(root, recursive: true);
         }
+    }
+
+    [Fact]
+    public void Source_index_reads_inline_suppression()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "archon-ignore-" + Guid.NewGuid().ToString("N") + ".cs");
+        File.WriteAllText(path, "using Shop.Infrastructure; // archon:ignore no-infra\n");
+        try
+        {
+            var import = Assert.Single(SourceIndexLoader.ReadImports("Shop.Domain", path));
+            Assert.Equal("no-infra", import.Suppression);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Markdown_report_contains_status()
+    {
+        var graph = ProjectGraph.Create(
+            [new ProjectNode("A.Domain", "A.csproj", "net10.0")],
+            []);
+        var report = new AnalysisReport("Demo", "demo.sln", graph, []);
+        var markdown = MarkdownReportWriter.Write(report);
+        Assert.Contains("TEMİZ", markdown, StringComparison.Ordinal);
     }
 
     [Fact]

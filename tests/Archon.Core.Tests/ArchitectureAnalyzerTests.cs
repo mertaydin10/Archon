@@ -135,6 +135,64 @@ public sealed class ArchitectureAnalyzerTests
     }
 
     [Fact]
+    public void Package_deny_flags_forbidden_nuget()
+    {
+        var graph = Graph(["Shop.Domain"], []);
+        var packages = new PackageIndex(
+        [
+            new PackageReference("Shop.Domain", "Newtonsoft.Json", "13.0.3")
+        ]);
+        var rules = new RuleSet("shop", null,
+        [
+            new PackageDenyRule("no-json", "json yasak", RuleSeverity.Error,
+                ["*.Domain"], ["Newtonsoft.Json"], [])
+        ]);
+
+        var report = new ArchitectureAnalyzer().Analyze(graph, rules, "shop.sln", packages: packages);
+
+        var hit = Assert.Single(report.Violations);
+        Assert.Equal("Newtonsoft.Json", hit.To);
+    }
+
+    [Fact]
+    public void Namespace_suppression_skips_matching_rule()
+    {
+        var graph = Graph(["Shop.Domain"], []);
+        var sources = new SourceIndex(
+        [
+            new NamespaceImport("Shop.Domain", "Shop.Infrastructure", "Domain/Leak.cs", 1, "no-infra")
+        ]);
+        var rules = new RuleSet("shop", null,
+        [
+            new NamespaceDenyRule("no-infra", "import yasak", RuleSeverity.Error,
+                ["*.Domain"], ["Shop.Infrastructure*"], [])
+        ]);
+
+        var report = new ArchitectureAnalyzer().Analyze(graph, rules, "shop.sln", sources);
+
+        Assert.Empty(report.Violations);
+    }
+
+    [Fact]
+    public void Baseline_hides_known_violations()
+    {
+        var graph = Graph(["Catalog", "Payments"], [("Catalog", "Payments")]);
+        var rules = new RuleSet("shop", null,
+        [
+            new DenyRule("catalog-payments", "hayır", RuleSeverity.Error,
+                ["Catalog"], ["Payments"], [])
+        ]);
+        var full = new ArchitectureAnalyzer().Analyze(graph, rules, "shop.sln");
+        var known = new HashSet<string> { ViolationKey.Of(full.Violations[0]) };
+
+        var filtered = BaselineFilter.Apply(full, known);
+
+        Assert.Empty(filtered.Violations);
+        Assert.Equal(1, filtered.BaselineSuppressed);
+        Assert.False(filtered.ShouldFail(false));
+    }
+
+    [Fact]
     public void Transitive_dependents_follow_reverse_edges()
     {
         var graph = Graph(
