@@ -14,6 +14,9 @@ app.Configure(config =>
         .WithExample("explain", "Contoso.Domain");
     config.AddCommand<ValidateCommand>("validate")
         .WithDescription("archon.yaml dosyasını çözümlemeden doğrular.");
+    config.AddCommand<GraphCommand>("graph")
+        .WithDescription("Bağımlılık grafını Mermaid veya DOT olarak yazar.")
+        .WithExample("graph", "--format", "mermaid", "--out", "artifacts/graph.mmd");
     config.AddCommand<InitCommand>("init")
         .WithDescription("Örnek archon.yaml dosyası yazar.");
 });

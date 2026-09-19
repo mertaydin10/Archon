@@ -85,5 +85,14 @@ internal sealed class InitCommand : Command<InitSettings>
           - id: no-cycles
             kind: acyclic
             description: Proje grafı döngü içeremez.
+
+          - id: api-fanout
+            kind: max-fanout
+            from: "*.Api"
+            max: 2
+
+          - id: stable-dependencies
+            kind: sdp
+            description: Kararlı modül, daha kararsız olana bağlanamaz.
         """;
 }

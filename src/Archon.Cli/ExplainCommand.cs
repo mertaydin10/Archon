@@ -37,6 +37,8 @@ internal sealed class ExplainCommand : Command<ExplainSettings>
 
             AnsiConsole.MarkupLine($"[bold]{Markup.Escape(explanation.Project)}[/]");
             AnsiConsole.MarkupLine($"[grey]{Markup.Escape(workspace.SolutionPath)}[/]");
+            var metric = CouplingCalculator.Of(workspace.Graph, explanation.Project);
+            AnsiConsole.MarkupLine($"[grey]Ce={metric.Ce}  Ca={metric.Ca}  I={metric.Instability:0.00}[/]");
             AnsiConsole.WriteLine();
             WriteList("Giden bağımlılıklar", explanation.Dependencies);
             WriteList("Gelen bağımlılıklar", explanation.Dependents);
