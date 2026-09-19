@@ -31,3 +31,6 @@ jobs:
           set +e
           dotnet run --project src/Archon.Cli -- analyze samples/ContosoShop/ContosoShop.sln --rules archon.yaml
           test $? -eq 1
+
+      - name: Mermaid graf üret
+        run: dotnet run --project src/Archon.Cli -- graph Archon.sln --rules archon.self.yaml --format mermaid --out artifacts/graph.mmd
