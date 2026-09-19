@@ -87,6 +87,21 @@ public static class HtmlReportWriter
             sb.Append("</tbody></table>");
         }
 
+        if (report.Coupling.Count > 0)
+        {
+            sb.Append("<h2>Bağlaşım</h2>");
+            sb.Append("<table><thead><tr><th>Proje</th><th>Ce</th><th>Ca</th><th>I</th></tr></thead><tbody>");
+            foreach (var metric in report.Coupling)
+            {
+                sb.Append("<tr><td>").Append(Encode(metric.Project)).Append("</td>");
+                sb.Append("<td>").Append(metric.Ce).Append("</td>");
+                sb.Append("<td>").Append(metric.Ca).Append("</td>");
+                sb.Append("<td>").Append(metric.Instability.ToString("0.00")).Append("</td></tr>");
+            }
+
+            sb.Append("</tbody></table>");
+        }
+
         sb.Append("<h2>Etki alanı</h2>");
         sb.Append("<table><thead><tr><th>Proje</th><th>Doğrudan bağımlı</th><th>Geçişli etki</th></tr></thead><tbody>");
         foreach (var project in report.Graph.Projects)

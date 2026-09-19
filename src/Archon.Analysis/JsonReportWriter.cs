@@ -39,7 +39,8 @@ public static class JsonReportWriter
             {
                 projects = report.Graph.Projects.Select(p => new { p.Name, p.Path, p.TargetFramework }),
                 edges = report.Graph.Edges.Select(e => new { e.From, e.To })
-            }
+            },
+            metrics = report.Coupling.Select(m => new { m.Project, m.Ce, m.Ca, m.Instability })
         };
 
         return JsonSerializer.Serialize(payload, Options);

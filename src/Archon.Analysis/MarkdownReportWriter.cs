@@ -18,6 +18,15 @@ public static class MarkdownReportWriter
         sb.AppendLine($"`{report.SolutionPath}`");
         sb.AppendLine();
 
+        if (report.Coupling.Count > 0)
+        {
+            sb.AppendLine("| Proje | Ce | Ca | I |");
+            sb.AppendLine("|---|---:|---:|---:|");
+            foreach (var metric in report.Coupling)
+                sb.AppendLine($"| `{Escape(metric.Project)}` | {metric.Ce} | {metric.Ca} | {metric.Instability:0.00} |");
+            sb.AppendLine();
+        }
+
         if (report.Violations.Count == 0)
         {
             sb.AppendLine("Tanımlı kurallara göre yeni ihlal yok.");

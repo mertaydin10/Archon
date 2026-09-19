@@ -14,20 +14,43 @@ public sealed class RuleSetLoader
 
     public RuleSet Load(string path)
     {
+        var loaded = Load(path, [], []);
+        if (loaded.Rules.Count == 0)
+            throw new InvalidOperationException("Rules file must contain at least one rule.");
+        return loaded;
+    }
+
+    private RuleSet Load(string path, HashSet<string> visiting, HashSet<string> seen)
+    {
         var fullPath = Path.GetFullPath(path);
         if (!File.Exists(fullPath))
             throw new FileNotFoundException("Rules file was not found.", fullPath);
+        if (!visiting.Add(fullPath))
+            throw new InvalidOperationException($"Döngüsel include: {fullPath}");
 
         var document = _deserializer.Deserialize<RuleSetDocument>(File.ReadAllText(fullPath))
             ?? throw new InvalidOperationException("Rules file is empty.");
 
-        if (document.Rules.Count == 0)
-            throw new InvalidOperationException("Rules file must contain at least one rule.");
+        var rules = new List<ArchitectureRule>();
+        var directory = Path.GetDirectoryName(fullPath) ?? Environment.CurrentDirectory;
+        if (seen.Add(fullPath))
+        {
+            foreach (var include in document.Includes ?? [])
+            {
+                if (string.IsNullOrWhiteSpace(include))
+                    continue;
+                var included = Load(Path.Combine(directory, include.Trim()), visiting, seen);
+                rules.AddRange(included.Rules);
+            }
 
-        var rules = document.Rules.Select(ToRule).ToArray();
+            rules.AddRange((document.Rules ?? []).Select(ToRule));
+        }
+
+        visiting.Remove(fullPath);
+
         var solution = string.IsNullOrWhiteSpace(document.Solution)
             ? null
-            : Path.GetFullPath(Path.Combine(Path.GetDirectoryName(fullPath) ?? Environment.CurrentDirectory, document.Solution));
+            : Path.GetFullPath(Path.Combine(directory, document.Solution));
 
         return new RuleSet(
             string.IsNullOrWhiteSpace(document.Name) ? Path.GetFileNameWithoutExtension(fullPath) : document.Name.Trim(),
@@ -84,6 +107,15 @@ public sealed class RuleSetLoader
                     ? document.Layers
                     : throw new InvalidOperationException($"Rule '{document.Id}' must list at least two layers.")),
             "acyclic" => new AcyclicRule(document.Id.Trim(), description, severity),
+            "max-fanout" => new MaxFanoutRule(
+                document.Id.Trim(),
+                description,
+                severity,
+                ReadPatterns(document.From, "from"),
+                document.Max is >= 0
+                    ? document.Max.Value
+                    : throw new InvalidOperationException($"Rule '{document.Id}' must set max >= 0.")),
+            "sdp" or "stable-dependencies" => new StableDependencyRule(document.Id.Trim(), description, severity),
             _ => throw new InvalidOperationException($"Unknown rule kind '{document.Kind}' in '{document.Id}'.")
         };
     }
@@ -140,6 +172,7 @@ public sealed class RuleSetLoader
     {
         public string? Name { get; set; }
         public string? Solution { get; set; }
+        public List<string>? Includes { get; set; }
         public List<RuleDocument> Rules { get; set; } = [];
     }
 
@@ -153,6 +186,7 @@ public sealed class RuleSetLoader
         public object? To { get; set; }
         public object? Packages { get; set; }
         public List<string>? Layers { get; set; }
+        public int? Max { get; set; }
         public List<ExceptionDocument>? Except { get; set; }
     }
 
