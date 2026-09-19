@@ -202,6 +202,64 @@ public sealed class ArchitectureAnalyzerTests
         Assert.Equal(["Api", "Application"], graph.TransitiveDependents("Domain"));
     }
 
+    [Fact]
+    public void Max_fanout_flags_too_many_outgoing_edges()
+    {
+        var graph = Graph(
+            ["Api", "A", "B", "C"],
+            [("Api", "A"), ("Api", "B"), ("Api", "C")]);
+        var rules = new RuleSet("shop", null,
+        [
+            new MaxFanoutRule("api-fanout", "en fazla 2", RuleSeverity.Error, ["Api"], 2)
+        ]);
+
+        var report = new ArchitectureAnalyzer().Analyze(graph, rules, "shop.sln");
+
+        var hit = Assert.Single(report.Violations);
+        Assert.Equal("api-fanout", hit.RuleId);
+        Assert.Equal("3", hit.To);
+    }
+
+    [Fact]
+    public void Sdp_flags_stable_depending_on_unstable()
+    {
+        var graph = Graph(
+            ["Stable", "Unstable", "A", "B", "C", "X", "Y"],
+            [
+                ("Stable", "Unstable"),
+                ("A", "Stable"),
+                ("B", "Stable"),
+                ("C", "Stable"),
+                ("Unstable", "X"),
+                ("Unstable", "Y")
+            ]);
+        var rules = new RuleSet("shop", null,
+        [
+            new StableDependencyRule("sdp", "SDP", RuleSeverity.Error)
+        ]);
+
+        var report = new ArchitectureAnalyzer().Analyze(graph, rules, "shop.sln");
+
+        Assert.Contains(report.Violations, v => v.From == "Stable" && v.To == "Unstable");
+    }
+
+    [Fact]
+    public void Coupling_metrics_count_afferent_and_efferent()
+    {
+        var graph = Graph(
+            ["Api", "Domain"],
+            [("Api", "Domain")]);
+        var domain = CouplingCalculator.Of(graph, "Domain");
+        var api = CouplingCalculator.Of(graph, "Api");
+
+        Assert.Equal(0, domain.Ce);
+        Assert.Equal(1, domain.Ca);
+        Assert.Equal(0, domain.Instability);
+        Assert.Equal(1, api.Ce);
+        Assert.Equal(0, api.Ca);
+        Assert.Equal(1, api.Instability);
+    }
+
     private static ProjectGraph Graph(
         IEnumerable<string> names,
         IEnumerable<(string From, string To)> edges)

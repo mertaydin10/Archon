@@ -199,6 +199,88 @@ public sealed class SolutionAndRulesTests
         Assert.Contains("A.Domain", html, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Yaml_includes_merge_rules()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "archon-inc-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, "child.yaml"),
+            """
+            rules:
+              - id: no-cycles
+                kind: acyclic
+            """);
+        File.WriteAllText(Path.Combine(root, "parent.yaml"),
+            """
+            name: Shop
+            includes:
+              - child.yaml
+            rules:
+              - id: catalog-payments
+                kind: deny
+                from: "*Catalog*"
+                to: "*Payments*"
+            """);
+        try
+        {
+            var ruleSet = new RuleSetLoader().Load(Path.Combine(root, "parent.yaml"));
+            Assert.Equal(2, ruleSet.Rules.Count);
+            Assert.Contains(ruleSet.Rules, r => r is AcyclicRule);
+            Assert.Contains(ruleSet.Rules, r => r is DenyRule);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Mermaid_graph_contains_nodes()
+    {
+        var graph = ProjectGraph.Create(
+            [new ProjectNode("Api", "Api.csproj", "net10.0"), new ProjectNode("Domain", "Domain.csproj", "net10.0")],
+            [new ProjectEdge("Api", "Domain")]);
+        var mermaid = GraphTextWriter.Mermaid(graph);
+
+        Assert.Contains("flowchart TB", mermaid, StringComparison.Ordinal);
+        Assert.Contains("Api", mermaid, StringComparison.Ordinal);
+        Assert.Contains("-->", mermaid, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Central_package_versions_fill_missing_csproj_version()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "archon-cpm-" + Guid.NewGuid().ToString("N"));
+        var src = Path.Combine(root, "src", "Lib");
+        Directory.CreateDirectory(src);
+        File.WriteAllText(Path.Combine(root, "Directory.Packages.props"),
+            """
+            <Project>
+              <ItemGroup>
+                <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
+              </ItemGroup>
+            </Project>
+            """);
+        File.WriteAllText(Path.Combine(src, "Lib.csproj"),
+            """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <ItemGroup>
+                <PackageReference Include="Newtonsoft.Json" />
+              </ItemGroup>
+            </Project>
+            """);
+        try
+        {
+            var versions = PackageIndexLoader.ReadCentralVersions(src);
+            var package = Assert.Single(PackageIndexLoader.ReadPackages("Lib", Path.Combine(src, "Lib.csproj"), versions));
+            Assert.Equal("13.0.3", package.Version);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     private static string CreateShop()
     {
         var root = Path.Combine(Path.GetTempPath(), "archon-tests-" + Guid.NewGuid().ToString("N"));
