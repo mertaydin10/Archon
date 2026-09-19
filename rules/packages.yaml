@@ -1,0 +1,7 @@
+rules:
+  - id: domain-no-json-package
+    kind: package-deny
+    description: Domain Newtonsoft.Json alamaz.
+    from: "*.Domain"
+    packages:
+      - Newtonsoft.Json

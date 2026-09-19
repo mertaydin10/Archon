@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/mertaydin10/Archon/archon.schema.json",
+  "title": "Archon rules",
+  "type": "object",
+  "properties": {
+    "name": { "type": "string" },
+    "solution": { "type": "string" },
+    "includes": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "kind"],
+        "properties": {
+          "id": { "type": "string" },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "deny",
+              "allow",
+              "namespace-deny",
+              "package-deny",
+              "layers",
+              "acyclic",
+              "max-fanout",
+              "sdp",
+              "stable-dependencies"
+            ]
+          },
+          "description": { "type": "string" },
+          "severity": { "type": "string", "enum": ["error", "warning", "warn"] },
+          "from": { "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }] },
+          "to": { "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }] },
+          "packages": { "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }] },
+          "layers": { "type": "array", "items": { "type": "string" }, "minItems": 2 },
+          "max": { "type": "integer", "minimum": 0 },
+          "except": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["from", "to"],
+              "properties": {
+                "from": { "type": "string" },
+                "to": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
