@@ -53,6 +53,18 @@ public sealed record PackageDenyRule(
     IReadOnlyList<string> Packages,
     IReadOnlyList<RuleException> Exceptions) : ArchitectureRule(Id, Description, Severity);
 
+public sealed record MaxFanoutRule(
+    string Id,
+    string Description,
+    RuleSeverity Severity,
+    IReadOnlyList<string> From,
+    int Max) : ArchitectureRule(Id, Description, Severity);
+
+public sealed record StableDependencyRule(
+    string Id,
+    string Description,
+    RuleSeverity Severity) : ArchitectureRule(Id, Description, Severity);
+
 public sealed record RuleSet(
     string Name,
     string? SolutionPath,

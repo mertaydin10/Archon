@@ -15,11 +15,13 @@ public sealed record AnalysisReport(
     string SolutionPath,
     ProjectGraph Graph,
     IReadOnlyList<Violation> Violations,
-    int BaselineSuppressed = 0)
+    int BaselineSuppressed = 0,
+    IReadOnlyList<CouplingMetric>? Metrics = null)
 {
     public int ErrorCount => Violations.Count(v => v.Severity == RuleSeverity.Error);
     public int WarningCount => Violations.Count(v => v.Severity == RuleSeverity.Warning);
     public bool HasErrors => ErrorCount > 0;
+    public IReadOnlyList<CouplingMetric> Coupling => Metrics ?? [];
 
     public bool ShouldFail(bool failOnWarning) =>
         HasErrors || (failOnWarning && WarningCount > 0);

@@ -34,6 +34,12 @@ public sealed class ArchitectureAnalyzer
                 case AcyclicRule acyclic:
                     violations.AddRange(EvaluateCycles(graph, acyclic));
                     break;
+                case MaxFanoutRule fanout:
+                    violations.AddRange(EvaluateFanout(graph, fanout));
+                    break;
+                case StableDependencyRule sdp:
+                    violations.AddRange(EvaluateStableDependencies(graph, sdp));
+                    break;
             }
         }
 
@@ -48,7 +54,8 @@ public sealed class ArchitectureAnalyzer
                 .ThenBy(v => v.To, StringComparer.OrdinalIgnoreCase)
                 .ThenBy(v => v.FilePath, StringComparer.OrdinalIgnoreCase)
                 .ThenBy(v => v.Line)
-                .ToArray());
+                .ToArray(),
+            Metrics: CouplingCalculator.Compute(graph));
     }
 
     private static IEnumerable<Violation> EvaluateDeny(ProjectGraph graph, DenyRule rule)
@@ -161,6 +168,47 @@ public sealed class ArchitectureAnalyzer
                 cycle[0],
                 cycle[^1],
                 cycle);
+        }
+    }
+
+    private static IEnumerable<Violation> EvaluateFanout(ProjectGraph graph, MaxFanoutRule rule)
+    {
+        foreach (var project in graph.Projects)
+        {
+            if (!MatchesAny(rule.From, project.Name))
+                continue;
+
+            var count = graph.Dependencies(project.Name).Count;
+            if (count <= rule.Max)
+                continue;
+
+            yield return new Violation(
+                rule.Id,
+                rule.Severity,
+                $"{rule.Description} {project.Name} {count} giden bağımlılık içeriyor (üst sınır {rule.Max}).",
+                project.Name,
+                count.ToString());
+        }
+    }
+
+    private static IEnumerable<Violation> EvaluateStableDependencies(ProjectGraph graph, StableDependencyRule rule)
+    {
+        var metrics = CouplingCalculator.Compute(graph)
+            .ToDictionary(m => m.Project, m => m, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var edge in graph.Edges)
+        {
+            if (!metrics.TryGetValue(edge.From, out var from) || !metrics.TryGetValue(edge.To, out var to))
+                continue;
+            if (from.Instability + 0.001 >= to.Instability)
+                continue;
+
+            yield return new Violation(
+                rule.Id,
+                rule.Severity,
+                $"{rule.Description} {edge.From} (I={from.Instability:0.00}) daha kararsız {edge.To} (I={to.Instability:0.00}) üzerine bağlanıyor.",
+                edge.From,
+                edge.To);
         }
     }
 
