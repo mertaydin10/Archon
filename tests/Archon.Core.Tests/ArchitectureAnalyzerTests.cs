@@ -260,6 +260,84 @@ public sealed class ArchitectureAnalyzerTests
         Assert.Equal(1, api.Instability);
     }
 
+    [Fact]
+    public void Isolated_rule_flags_both_directions()
+    {
+        var graph = Graph(
+            ["Catalog", "Payments"],
+            [("Catalog", "Payments")]);
+        var rules = new RuleSet("shop", null,
+        [
+            new IsolatedRule("iso", "ayrı bağlam", RuleSeverity.Error,
+                ["*Catalog*"], ["*Payments*"], [])
+        ]);
+
+        var report = new ArchitectureAnalyzer().Analyze(graph, rules, "shop.sln");
+
+        var hit = Assert.Single(report.Violations);
+        Assert.Equal("iso", hit.RuleId);
+        Assert.Equal("Catalog", hit.From);
+        Assert.Equal("Payments", hit.To);
+    }
+
+    [Fact]
+    public void Version_aligned_flags_drift()
+    {
+        var graph = Graph(["Catalog", "Domain"], []);
+        var packages = new PackageIndex(
+        [
+            new PackageReference("Catalog", "Newtonsoft.Json", "12.0.3"),
+            new PackageReference("Domain", "Newtonsoft.Json", "13.0.3")
+        ]);
+        var rules = new RuleSet("shop", null,
+        [
+            new VersionAlignedRule("aligned", "sürüm hizalı", RuleSeverity.Error, ["Newtonsoft.Json"])
+        ]);
+
+        var report = new ArchitectureAnalyzer().Analyze(graph, rules, "shop.sln", packages: packages);
+
+        var hit = Assert.Single(report.Violations);
+        Assert.Equal("Newtonsoft.Json", hit.From);
+        Assert.Contains("12.0.3", hit.To);
+        Assert.Contains("13.0.3", hit.To);
+    }
+
+    [Fact]
+    public void Internals_deny_flags_friend_assembly()
+    {
+        var graph = Graph(["Payments", "Catalog"], []);
+        var friends = new FriendIndex(
+        [
+            new FriendAssembly("Payments", "Contoso.Catalog", "Payments.csproj")
+        ]);
+        var rules = new RuleSet("shop", null,
+        [
+            new InternalsDenyRule("no-friends", "dostluk yasak", RuleSeverity.Error,
+                ["*Payments*"], ["*Catalog*"], [])
+        ]);
+
+        var report = new ArchitectureAnalyzer().Analyze(graph, rules, "shop.sln", friends: friends);
+
+        var hit = Assert.Single(report.Violations);
+        Assert.Equal("Payments", hit.From);
+        Assert.Equal("Contoso.Catalog", hit.To);
+        Assert.Equal("Payments.csproj", hit.FilePath);
+    }
+
+    [Fact]
+    public void Exclude_drops_matching_projects_and_edges()
+    {
+        var graph = Graph(
+            ["Api", "Tests", "Domain"],
+            [("Api", "Domain"), ("Tests", "Api")]);
+
+        var filtered = graph.Exclude(["*Tests*"]);
+
+        Assert.DoesNotContain(filtered.Projects, p => p.Name == "Tests");
+        Assert.DoesNotContain(filtered.Edges, e => e.From == "Tests");
+        Assert.Contains(filtered.Edges, e => e.From == "Api" && e.To == "Domain");
+    }
+
     private static ProjectGraph Graph(
         IEnumerable<string> names,
         IEnumerable<(string From, string To)> edges)

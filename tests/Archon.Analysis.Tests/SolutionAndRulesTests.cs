@@ -281,6 +281,93 @@ public sealed class SolutionAndRulesTests
         }
     }
 
+    [Fact]
+    public void Yaml_parses_isolated_version_aligned_and_exclude()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "archon-new-" + Guid.NewGuid().ToString("N") + ".yaml");
+        File.WriteAllText(path,
+            """
+            name: Shop
+            exclude:
+              - "*Tests*"
+            rules:
+              - id: iso
+                kind: isolated
+                from: "*Catalog*"
+                to: "*Payments*"
+              - id: aligned
+                kind: version-aligned
+                packages:
+                  - Newtonsoft.Json
+              - id: friends
+                kind: internals-deny
+                from: "*Payments*"
+                to: "*Catalog*"
+            """);
+        try
+        {
+            var ruleSet = new RuleSetLoader().Load(path);
+            Assert.Equal("*Tests*", Assert.Single(ruleSet.ExcludedProjects));
+            Assert.Contains(ruleSet.Rules, r => r is IsolatedRule);
+            Assert.Contains(ruleSet.Rules, r => r is VersionAlignedRule);
+            Assert.Contains(ruleSet.Rules, r => r is InternalsDenyRule);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Friend_index_reads_csproj_and_source_attribute()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "archon-friends-" + Guid.NewGuid().ToString("N"));
+        var src = Path.Combine(root, "src", "Lib");
+        Directory.CreateDirectory(src);
+        var csproj = Path.Combine(src, "Lib.csproj");
+        File.WriteAllText(csproj,
+            """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <ItemGroup>
+                <InternalsVisibleTo Include="Lib.Tests" />
+              </ItemGroup>
+            </Project>
+            """);
+        File.WriteAllText(Path.Combine(src, "Friends.cs"),
+            """
+            [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Lib.Other")]
+            """);
+        try
+        {
+            var fromProject = Assert.Single(FriendIndexLoader.ReadFromProject("Lib", csproj));
+            Assert.Equal("Lib.Tests", fromProject.Friend);
+            var fromSource = Assert.Single(FriendIndexLoader.ReadFromSource("Lib", Path.Combine(src, "Friends.cs")));
+            Assert.Equal("Lib.Other", fromSource.Friend);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Junit_report_marks_errors_as_failures()
+    {
+        var graph = ProjectGraph.Create(
+            [new ProjectNode("Catalog", "Catalog.csproj", "net10.0")],
+            []);
+        var report = new AnalysisReport("Demo", "demo.sln", graph,
+        [
+            new Violation("iso", RuleSeverity.Error, "yasak", "Catalog", "Payments")
+        ]);
+
+        var xml = JunitReportWriter.Write(report);
+
+        Assert.Contains("failures=\"1\"", xml, StringComparison.Ordinal);
+        Assert.Contains("<failure", xml, StringComparison.Ordinal);
+        Assert.Contains("iso", xml, StringComparison.Ordinal);
+    }
+
     private static string CreateShop()
     {
         var root = Path.Combine(Path.GetTempPath(), "archon-tests-" + Guid.NewGuid().ToString("N"));
