@@ -32,6 +32,7 @@ public sealed class RuleSetLoader
             ?? throw new InvalidOperationException("Rules file is empty.");
 
         var rules = new List<ArchitectureRule>();
+        var exclude = new List<string>();
         var directory = Path.GetDirectoryName(fullPath) ?? Environment.CurrentDirectory;
         if (seen.Add(fullPath))
         {
@@ -41,9 +42,11 @@ public sealed class RuleSetLoader
                     continue;
                 var included = Load(Path.Combine(directory, include.Trim()), visiting, seen);
                 rules.AddRange(included.Rules);
+                exclude.AddRange(included.ExcludedProjects);
             }
 
             rules.AddRange((document.Rules ?? []).Select(ToRule));
+            exclude.AddRange(Flatten(document.Exclude));
         }
 
         visiting.Remove(fullPath);
@@ -55,7 +58,8 @@ public sealed class RuleSetLoader
         return new RuleSet(
             string.IsNullOrWhiteSpace(document.Name) ? Path.GetFileNameWithoutExtension(fullPath) : document.Name.Trim(),
             solution,
-            rules);
+            rules,
+            exclude.Distinct(StringComparer.OrdinalIgnoreCase).ToArray());
     }
 
     private static ArchitectureRule ToRule(RuleDocument document)
@@ -116,6 +120,25 @@ public sealed class RuleSetLoader
                     ? document.Max.Value
                     : throw new InvalidOperationException($"Rule '{document.Id}' must set max >= 0.")),
             "sdp" or "stable-dependencies" => new StableDependencyRule(document.Id.Trim(), description, severity),
+            "isolated" => new IsolatedRule(
+                document.Id.Trim(),
+                description,
+                severity,
+                ReadPatterns(document.From, "from"),
+                ReadPatterns(document.To, "to"),
+                ReadExceptions(document.Except)),
+            "version-aligned" => new VersionAlignedRule(
+                document.Id.Trim(),
+                description,
+                severity,
+                Flatten(document.Packages ?? document.To)),
+            "internals-deny" => new InternalsDenyRule(
+                document.Id.Trim(),
+                description,
+                severity,
+                ReadPatterns(document.From, "from"),
+                ReadPatterns(document.To, "to"),
+                ReadExceptions(document.Except)),
             _ => throw new InvalidOperationException($"Unknown rule kind '{document.Kind}' in '{document.Id}'.")
         };
     }
@@ -132,7 +155,7 @@ public sealed class RuleSetLoader
     {
         var list = Flatten(value);
         if (list.Count == 0)
-            throw new InvalidOperationException($"Deny rule is missing '{field}'.");
+            throw new InvalidOperationException($"Rule is missing '{field}'.");
         return list;
     }
 
@@ -173,6 +196,7 @@ public sealed class RuleSetLoader
         public string? Name { get; set; }
         public string? Solution { get; set; }
         public List<string>? Includes { get; set; }
+        public object? Exclude { get; set; }
         public List<RuleDocument> Rules { get; set; } = [];
     }
 
