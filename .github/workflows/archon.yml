@@ -29,8 +29,11 @@ jobs:
       - name: Contoso örneği kasıtlı olarak kırılmalı
         run: |
           set +e
-          dotnet run --project src/Archon.Cli -- analyze samples/ContosoShop/ContosoShop.sln --rules archon.yaml
+          dotnet run --project src/Archon.Cli -- analyze samples/ContosoShop/ContosoShop.sln --rules archon.yaml --format junit --out artifacts/contoso-junit.xml
           test $? -eq 1
+
+      - name: Bağlaşım özeti
+        run: dotnet run --project src/Archon.Cli -- stats samples/ContosoShop/ContosoShop.sln --rules archon.yaml
 
       - name: Mermaid graf üret
         run: dotnet run --project src/Archon.Cli -- graph Archon.sln --rules archon.self.yaml --format mermaid --out artifacts/graph.mmd

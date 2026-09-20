@@ -10,6 +10,9 @@
       "type": "array",
       "items": { "type": "string" }
     },
+    "exclude": {
+      "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }]
+    },
     "rules": {
       "type": "array",
       "items": {
@@ -28,7 +31,10 @@
               "acyclic",
               "max-fanout",
               "sdp",
-              "stable-dependencies"
+              "stable-dependencies",
+              "isolated",
+              "version-aligned",
+              "internals-deny"
             ]
           },
           "description": { "type": "string" },
