@@ -98,6 +98,18 @@ public sealed class ProjectGraph
         return found;
     }
 
+    public ProjectGraph Exclude(IReadOnlyList<string> globs)
+    {
+        if (globs.Count == 0)
+            return this;
+
+        bool Drop(string name) => globs.Any(glob => GlobPattern.IsMatch(glob, name));
+        var nodes = Projects.Where(p => !Drop(p.Name)).ToArray();
+        var keep = nodes.Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var edges = Edges.Where(e => keep.Contains(e.From) && keep.Contains(e.To)).ToArray();
+        return Create(nodes, edges);
+    }
+
     public IReadOnlyList<IReadOnlyList<string>> FindCycles()
     {
         const int visiting = 1;

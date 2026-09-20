@@ -65,7 +65,33 @@ public sealed record StableDependencyRule(
     string Description,
     RuleSeverity Severity) : ArchitectureRule(Id, Description, Severity);
 
+public sealed record IsolatedRule(
+    string Id,
+    string Description,
+    RuleSeverity Severity,
+    IReadOnlyList<string> From,
+    IReadOnlyList<string> To,
+    IReadOnlyList<RuleException> Exceptions) : ArchitectureRule(Id, Description, Severity);
+
+public sealed record VersionAlignedRule(
+    string Id,
+    string Description,
+    RuleSeverity Severity,
+    IReadOnlyList<string> Packages) : ArchitectureRule(Id, Description, Severity);
+
+public sealed record InternalsDenyRule(
+    string Id,
+    string Description,
+    RuleSeverity Severity,
+    IReadOnlyList<string> From,
+    IReadOnlyList<string> To,
+    IReadOnlyList<RuleException> Exceptions) : ArchitectureRule(Id, Description, Severity);
+
 public sealed record RuleSet(
     string Name,
     string? SolutionPath,
-    IReadOnlyList<ArchitectureRule> Rules);
+    IReadOnlyList<ArchitectureRule> Rules,
+    IReadOnlyList<string>? Exclude = null)
+{
+    public IReadOnlyList<string> ExcludedProjects => Exclude ?? [];
+}

@@ -7,10 +7,12 @@ public sealed class ArchitectureAnalyzer
         RuleSet ruleSet,
         string solutionPath,
         SourceIndex? sources = null,
-        PackageIndex? packages = null)
+        PackageIndex? packages = null,
+        FriendIndex? friends = null)
     {
         sources ??= SourceIndex.Empty;
         packages ??= PackageIndex.Empty;
+        friends ??= FriendIndex.Empty;
         var violations = new List<Violation>();
         foreach (var rule in ruleSet.Rules)
         {
@@ -39,6 +41,15 @@ public sealed class ArchitectureAnalyzer
                     break;
                 case StableDependencyRule sdp:
                     violations.AddRange(EvaluateStableDependencies(graph, sdp));
+                    break;
+                case IsolatedRule isolated:
+                    violations.AddRange(EvaluateIsolated(graph, isolated));
+                    break;
+                case VersionAlignedRule aligned:
+                    violations.AddRange(EvaluateVersionAligned(aligned, packages));
+                    break;
+                case InternalsDenyRule internals:
+                    violations.AddRange(EvaluateInternalsDeny(internals, friends));
                     break;
             }
         }
@@ -209,6 +220,75 @@ public sealed class ArchitectureAnalyzer
                 $"{rule.Description} {edge.From} (I={from.Instability:0.00}) daha kararsız {edge.To} (I={to.Instability:0.00}) üzerine bağlanıyor.",
                 edge.From,
                 edge.To);
+        }
+    }
+
+    private static IEnumerable<Violation> EvaluateIsolated(ProjectGraph graph, IsolatedRule rule)
+    {
+        foreach (var edge in graph.Edges)
+        {
+            var forward = MatchesAny(rule.From, edge.From) && MatchesAny(rule.To, edge.To);
+            var backward = MatchesAny(rule.From, edge.To) && MatchesAny(rule.To, edge.From);
+            if (!forward && !backward)
+                continue;
+            if (IsExcepted(rule.Exceptions, edge.From, edge.To))
+                continue;
+
+            yield return new Violation(
+                rule.Id,
+                rule.Severity,
+                $"{rule.Description} {edge.From} ↔ {edge.To} bağlamları birbirini görmemeli.",
+                edge.From,
+                edge.To);
+        }
+    }
+
+    private static IEnumerable<Violation> EvaluateVersionAligned(VersionAlignedRule rule, PackageIndex packages)
+    {
+        var groups = packages.Packages
+            .Where(p => rule.Packages.Count == 0 || MatchesAny(rule.Packages, p.PackageId))
+            .GroupBy(p => p.PackageId, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var group in groups)
+        {
+            var versions = group
+                .Select(p => $"{p.ProjectName} {(p.Version ?? "?")}")
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            var distinctVersions = group
+                .Select(p => p.Version ?? "?")
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            if (distinctVersions.Length <= 1)
+                continue;
+
+            yield return new Violation(
+                rule.Id,
+                rule.Severity,
+                $"{rule.Description} {group.Key}: {string.Join(", ", versions)}",
+                group.Key,
+                string.Join(" | ", distinctVersions));
+        }
+    }
+
+    private static IEnumerable<Violation> EvaluateInternalsDeny(InternalsDenyRule rule, FriendIndex friends)
+    {
+        foreach (var friend in friends.Friends)
+        {
+            if (!MatchesAny(rule.From, friend.ProjectName) || !MatchesAny(rule.To, friend.Friend))
+                continue;
+            if (IsExcepted(rule.Exceptions, friend.ProjectName, friend.Friend))
+                continue;
+
+            yield return new Violation(
+                rule.Id,
+                rule.Severity,
+                $"{rule.Description} {friend.ProjectName} InternalsVisibleTo({friend.Friend})",
+                friend.ProjectName,
+                friend.Friend,
+                FilePath: friend.FilePath,
+                Line: friend.Line);
         }
     }
 
