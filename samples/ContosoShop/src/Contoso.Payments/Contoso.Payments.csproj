@@ -2,4 +2,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Contoso.Domain\Contoso.Domain.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Contoso.Catalog" />
+  </ItemGroup>
 </Project>

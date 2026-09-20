@@ -1,6 +1,8 @@
 # yaml-language-server: $schema=./archon.schema.json
 name: Contoso Shop
 solution: samples/ContosoShop/ContosoShop.sln
+exclude:
+  - "*Tests*"
 includes:
   - rules/packages.yaml
 
@@ -60,3 +62,21 @@ rules:
   - id: stable-dependencies
     kind: sdp
     description: Kararlı modül, daha kararsız olana bağlanamaz.
+
+  - id: catalog-payments-isolated
+    kind: isolated
+    description: Catalog ve Payments bağlamları birbirini görmemeli.
+    from: "*Catalog*"
+    to: "*Payments*"
+
+  - id: newtonsoft-aligned
+    kind: version-aligned
+    description: Newtonsoft.Json sürümü solution genelinde aynı olmalı.
+    packages:
+      - Newtonsoft.Json
+
+  - id: payments-no-catalog-friends
+    kind: internals-deny
+    description: Payments, Catalog'a InternalsVisibleTo veremez.
+    from: "*Payments*"
+    to: "*Catalog*"

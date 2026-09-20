@@ -2,5 +2,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Contoso.Domain\Contoso.Domain.csproj" />
     <ProjectReference Include="..\Contoso.Payments\Contoso.Payments.csproj" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
   </ItemGroup>
 </Project>
