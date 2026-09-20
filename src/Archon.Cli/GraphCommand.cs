@@ -23,6 +23,10 @@ internal sealed class GraphSettings : CommandSettings
     [CommandOption("-o|--out <FILE>")]
     [Description("Dosya yolu. Boşsa stdout.")]
     public string? Output { get; init; }
+
+    [CommandOption("--exclude <GLOB>")]
+    [Description("Grafikten çıkarılacak proje glob'u.")]
+    public string[]? Exclude { get; init; }
 }
 
 internal sealed class GraphCommand : Command<GraphSettings>
@@ -31,13 +35,14 @@ internal sealed class GraphCommand : Command<GraphSettings>
     {
         try
         {
-            var workspace = ArchonWorkspace.Load(settings.Path, settings.Rules);
+            var workspace = ArchonWorkspace.Load(settings.Path, settings.Rules, settings.Exclude);
             var report = new ArchitectureAnalyzer().Analyze(
                 workspace.Graph,
                 workspace.RuleSet,
                 workspace.SolutionPath,
                 workspace.Sources,
-                workspace.Packages);
+                workspace.Packages,
+                workspace.Friends);
             var broken = report.Violations
                 .Where(v => v.From is not null && v.To is not null && v.Cycle is null)
                 .Select(v => (v.From!, v.To!))

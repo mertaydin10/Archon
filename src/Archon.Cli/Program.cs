@@ -19,6 +19,9 @@ app.Configure(config =>
         .WithExample("graph", "--format", "mermaid", "--out", "artifacts/graph.mmd");
     config.AddCommand<InitCommand>("init")
         .WithDescription("Örnek archon.yaml dosyası yazar.");
+    config.AddCommand<StatsCommand>("stats")
+        .WithDescription("Proje bağlaşım metriklerini (Ce/Ca/I) yazar.")
+        .WithExample("stats", "samples/ContosoShop/ContosoShop.sln");
 });
 
 return app.Run(args);

@@ -17,12 +17,16 @@ internal sealed class AnalyzeSettings : CommandSettings
     public string? Rules { get; init; }
 
     [CommandOption("-f|--format <FORMAT>")]
-    [Description("Çıktı biçimi: console, json, html, sarif, markdown")]
+    [Description("Çıktı biçimi: console, json, html, sarif, markdown, junit")]
     public string Format { get; init; } = "console";
 
     [CommandOption("-o|--out <FILE>")]
-    [Description("json/html/sarif/markdown için dosya yolu")]
+    [Description("json/html/sarif/markdown/junit için dosya yolu")]
     public string? Output { get; init; }
+
+    [CommandOption("--exclude <GLOB>")]
+    [Description("Analizden çıkarılacak proje glob'u. Birden fazla kez verilebilir.")]
+    public string[]? Exclude { get; init; }
 
     [CommandOption("--baseline <FILE>")]
     [Description("Bilinen ihlalleri yok saymak için baseline JSON")]
@@ -43,13 +47,14 @@ internal sealed class AnalyzeCommand : Command<AnalyzeSettings>
     {
         try
         {
-            var workspace = ArchonWorkspace.Load(settings.Path, settings.Rules);
+            var workspace = ArchonWorkspace.Load(settings.Path, settings.Rules, settings.Exclude);
             var report = new ArchitectureAnalyzer().Analyze(
                 workspace.Graph,
                 workspace.RuleSet,
                 workspace.SolutionPath,
                 workspace.Sources,
-                workspace.Packages);
+                workspace.Packages,
+                workspace.Friends);
             report = ReportPaths.Relativize(report);
 
             if (!string.IsNullOrWhiteSpace(settings.WriteBaseline))
@@ -94,6 +99,11 @@ internal sealed class AnalyzeCommand : Command<AnalyzeSettings>
                 var mdPath = settings.Output ?? Path.Combine("artifacts", "archon.md");
                 WriteFileOrStdout(mdPath, MarkdownReportWriter.Write(report));
                 AnsiConsole.MarkupLine($"[grey]Markdown rapor:[/] {Markup.Escape(Path.GetFullPath(mdPath))}");
+                break;
+            case "junit" or "xml":
+                var junitPath = settings.Output ?? Path.Combine("artifacts", "archon-junit.xml");
+                WriteFileOrStdout(junitPath, JunitReportWriter.Write(report));
+                AnsiConsole.MarkupLine($"[grey]JUnit rapor:[/] {Markup.Escape(Path.GetFullPath(junitPath))}");
                 break;
             case "console":
                 ConsoleReportWriter.Write(report);

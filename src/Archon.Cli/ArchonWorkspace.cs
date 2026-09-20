@@ -8,11 +8,12 @@ internal sealed record LoadedWorkspace(
     string SolutionPath,
     ProjectGraph Graph,
     SourceIndex Sources,
-    PackageIndex Packages);
+    PackageIndex Packages,
+    FriendIndex Friends);
 
 internal static class ArchonWorkspace
 {
-    public static LoadedWorkspace Load(string? path, string? rules)
+    public static LoadedWorkspace Load(string? path, string? rules, IReadOnlyList<string>? extraExclude = null)
     {
         var rulesPath = ResolveRulesPath(rules);
         var ruleSet = File.Exists(rulesPath)
@@ -20,10 +21,16 @@ internal static class ArchonWorkspace
             : new RuleSet("Archon", null, [new AcyclicRule("no-cycles", "Proje grafı döngü içeremez.", RuleSeverity.Warning)]);
 
         var solutionPath = ResolveSolutionPath(path, ruleSet);
-        var graph = new SolutionGraphLoader().Load(solutionPath);
+        var exclude = ruleSet.ExcludedProjects
+            .Concat(extraExclude ?? [])
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        var graph = new SolutionGraphLoader().Load(solutionPath).Exclude(exclude);
         var sources = new SourceIndexLoader().Load(graph);
         var packages = new PackageIndexLoader().Load(graph);
-        return new LoadedWorkspace(ruleSet, solutionPath, graph, sources, packages);
+        var friends = new FriendIndexLoader().Load(graph);
+        return new LoadedWorkspace(ruleSet, solutionPath, graph, sources, packages, friends);
     }
 
     public static string ResolveRulesPath(string? rules)

@@ -94,5 +94,15 @@ internal sealed class InitCommand : Command<InitSettings>
           - id: stable-dependencies
             kind: sdp
             description: Kararlı modül, daha kararsız olana bağlanamaz.
+
+          - id: catalog-payments-isolated
+            kind: isolated
+            from: "*Catalog*"
+            to: "*Payments*"
+
+          - id: newtonsoft-aligned
+            kind: version-aligned
+            packages:
+              - Newtonsoft.Json
         """;
 }
