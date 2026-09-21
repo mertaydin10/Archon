@@ -10,7 +10,11 @@
 - `isolated` — iki bağlam birbirini (her iki yönde) görmesin
 - `version-aligned` — aynı NuGet paketinin sürümleri solution genelinde hizalı olsun
 - `internals-deny` — yasak `InternalsVisibleTo` dostlukları
+- `must-depend` — eşleşen proje en az bir zorunlu hedefe bağlanmalı
+- `max-fanin` / `max-depth` — gelen bağımlılık ve en uzun yol üst sınırı
+- `tfm-aligned` — TargetFramework hizası (Directory.Build.props dahil)
 - `exclude` ve `--exclude` ile proje grafından çıkarma
+- `--only` ile kural süzme; `archon diff` ile baseline karşılaştırması
 - Ce / Ca / I bağlaşım metrikleri (`archon stats`)
 - `includes` ile kural dosyası birleştirme
 - Mermaid / DOT graf (`archon graph`)
@@ -25,6 +29,9 @@ dotnet run --project src/Archon.Cli -- graph --format mermaid --out artifacts/gr
 dotnet run --project src/Archon.Cli -- explain Contoso.Domain
 dotnet run --project src/Archon.Cli -- stats samples/ContosoShop/ContosoShop.sln
 dotnet run --project src/Archon.Cli -- analyze samples/ContosoShop/ContosoShop.sln --format junit --out artifacts/archon-junit.xml
+dotnet run --project src/Archon.Cli -- analyze samples/ContosoShop/ContosoShop.sln --only "api-*" --only domain-fanin
+dotnet run --project src/Archon.Cli -- analyze samples/ContosoShop/ContosoShop.sln --write-baseline artifacts/baseline.json
+dotnet run --project src/Archon.Cli -- diff artifacts/baseline.json samples/ContosoShop/ContosoShop.sln
 dotnet run --project src/Archon.Cli -- validate archon.yaml
 dotnet run --project src/Archon.Cli -- analyze Archon.sln --rules archon.self.yaml
 dotnet test

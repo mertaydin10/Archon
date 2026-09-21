@@ -34,7 +34,12 @@
               "stable-dependencies",
               "isolated",
               "version-aligned",
-              "internals-deny"
+              "internals-deny",
+              "must-depend",
+              "max-fanin",
+              "max-depth",
+              "tfm-aligned",
+              "framework-aligned"
             ]
           },
           "description": { "type": "string" },
