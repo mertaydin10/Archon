@@ -35,3 +35,20 @@ rules:
     description: Çekirdek giden bağımlılık taşıyamaz.
     from: Archon.Core
     max: 0
+
+  - id: cli-must-use-analysis
+    kind: must-depend
+    description: CLI analiz katmanına bağlanmalı.
+    from: Archon.Cli
+    to: Archon.Analysis
+
+  - id: cli-depth
+    kind: max-depth
+    description: CLI derinlik sınırı.
+    from: Archon.Cli
+    max: 3
+
+  - id: tfm-aligned
+    kind: tfm-aligned
+    description: Archon projeleri aynı TFM'de olmalı.
+

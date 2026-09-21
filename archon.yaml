@@ -80,3 +80,26 @@ rules:
     description: Payments, Catalog'a InternalsVisibleTo veremez.
     from: "*Payments*"
     to: "*Catalog*"
+
+  - id: api-must-touch-domain
+    kind: must-depend
+    description: Api, Domain'e doğrudan bağlanmalı.
+    from: "*.Api"
+    to: "*.Domain"
+
+  - id: domain-fanin
+    kind: max-fanin
+    description: Domain çok fazla gelen bağımlılık taşıyamaz.
+    from: "*.Domain"
+    max: 2
+
+  - id: api-depth
+    kind: max-depth
+    description: Api'nin bağımlılık derinliği sınırlıdır.
+    from: "*.Api"
+    max: 3
+
+  - id: tfm-aligned
+    kind: tfm-aligned
+    description: TargetFramework solution genelinde aynı olmalı.
+
