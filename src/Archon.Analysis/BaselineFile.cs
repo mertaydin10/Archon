@@ -31,7 +31,10 @@ public static class BaselineFile
         return JsonSerializer.Serialize(payload, Options);
     }
 
-    public static IReadOnlySet<string> LoadKeys(string path)
+    public static IReadOnlySet<string> LoadKeys(string path) =>
+        LoadViolations(path).Select(ViolationKey.Of).ToHashSet(StringComparer.Ordinal);
+
+    public static IReadOnlyList<Violation> LoadViolations(string path)
     {
         var full = Path.GetFullPath(path);
         if (!File.Exists(full))
@@ -41,7 +44,7 @@ public static class BaselineFile
             ?? new BaselineDocument();
 
         return document.Violations
-            .Select(v => ViolationKey.Of(new Violation(
+            .Select(v => new Violation(
                 v.RuleId ?? "",
                 RuleSeverity.Error,
                 "",
@@ -49,8 +52,8 @@ public static class BaselineFile
                 v.To,
                 v.Cycle,
                 v.FilePath,
-                v.Line)))
-            .ToHashSet(StringComparer.Ordinal);
+                v.Line))
+            .ToArray();
     }
 
     private sealed class BaselineDocument

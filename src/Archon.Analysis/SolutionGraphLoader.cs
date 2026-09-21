@@ -84,7 +84,7 @@ public sealed class SolutionGraphLoader
         }
     }
 
-    private static string? ReadTargetFramework(string projectPath)
+    public static string? ReadTargetFramework(string projectPath)
     {
         if (!File.Exists(projectPath))
             return null;
@@ -92,19 +92,55 @@ public sealed class SolutionGraphLoader
         try
         {
             var document = XDocument.Load(projectPath);
-            var single = document.Descendants("TargetFramework").Select(x => x.Value).FirstOrDefault();
-            if (!string.IsNullOrWhiteSpace(single))
-                return single.Trim();
+            var fromProject = ReadFramework(document);
+            if (!string.IsNullOrWhiteSpace(fromProject))
+                return fromProject;
 
-            var many = document.Descendants("TargetFrameworks").Select(x => x.Value).FirstOrDefault();
-            if (string.IsNullOrWhiteSpace(many))
-                return null;
-
-            return many.Split(';').Select(x => x.Trim()).FirstOrDefault(x => x.Length > 0);
+            return ReadInheritedTargetFramework(Path.GetDirectoryName(projectPath) ?? Environment.CurrentDirectory);
         }
         catch (Exception)
         {
             return null;
         }
+    }
+
+    public static string? ReadInheritedTargetFramework(string startDirectory)
+    {
+        var directory = new DirectoryInfo(startDirectory);
+        while (directory is not null)
+        {
+            var props = Path.Combine(directory.FullName, "Directory.Build.props");
+            if (File.Exists(props))
+            {
+                try
+                {
+                    var document = XDocument.Load(props);
+                    var framework = ReadFramework(document);
+                    if (!string.IsNullOrWhiteSpace(framework))
+                        return framework;
+                }
+                catch (Exception)
+                {
+                    return null;
+                }
+            }
+
+            directory = directory.Parent;
+        }
+
+        return null;
+    }
+
+    private static string? ReadFramework(XDocument document)
+    {
+        var single = document.Descendants("TargetFramework").Select(x => x.Value).FirstOrDefault();
+        if (!string.IsNullOrWhiteSpace(single))
+            return single.Trim();
+
+        var many = document.Descendants("TargetFrameworks").Select(x => x.Value).FirstOrDefault();
+        if (string.IsNullOrWhiteSpace(many))
+            return null;
+
+        return many.Split(';').Select(x => x.Trim()).FirstOrDefault(x => x.Length > 0);
     }
 }

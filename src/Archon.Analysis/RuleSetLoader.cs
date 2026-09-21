@@ -139,6 +139,34 @@ public sealed class RuleSetLoader
                 ReadPatterns(document.From, "from"),
                 ReadPatterns(document.To, "to"),
                 ReadExceptions(document.Except)),
+            "must-depend" => new MustDependRule(
+                document.Id.Trim(),
+                description,
+                severity,
+                ReadPatterns(document.From, "from"),
+                ReadPatterns(document.To, "to"),
+                ReadExceptions(document.Except)),
+            "max-fanin" => new MaxFaninRule(
+                document.Id.Trim(),
+                description,
+                severity,
+                ReadPatterns(document.From, "from"),
+                document.Max is >= 0
+                    ? document.Max.Value
+                    : throw new InvalidOperationException($"Rule '{document.Id}' must set max >= 0.")),
+            "max-depth" => new MaxDepthRule(
+                document.Id.Trim(),
+                description,
+                severity,
+                ReadPatterns(document.From, "from"),
+                document.Max is >= 0
+                    ? document.Max.Value
+                    : throw new InvalidOperationException($"Rule '{document.Id}' must set max >= 0.")),
+            "tfm-aligned" or "framework-aligned" => new TfmAlignedRule(
+                document.Id.Trim(),
+                description,
+                severity,
+                Flatten(document.From)),
             _ => throw new InvalidOperationException($"Unknown rule kind '{document.Kind}' in '{document.Id}'.")
         };
     }
