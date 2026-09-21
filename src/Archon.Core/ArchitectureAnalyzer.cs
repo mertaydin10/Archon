@@ -51,6 +51,18 @@ public sealed class ArchitectureAnalyzer
                 case InternalsDenyRule internals:
                     violations.AddRange(EvaluateInternalsDeny(internals, friends));
                     break;
+                case MustDependRule must:
+                    violations.AddRange(EvaluateMustDepend(graph, must));
+                    break;
+                case MaxFaninRule fanin:
+                    violations.AddRange(EvaluateFanin(graph, fanin));
+                    break;
+                case MaxDepthRule depth:
+                    violations.AddRange(EvaluateDepth(graph, depth));
+                    break;
+                case TfmAlignedRule tfm:
+                    violations.AddRange(EvaluateTfmAligned(graph, tfm));
+                    break;
             }
         }
 
@@ -290,6 +302,90 @@ public sealed class ArchitectureAnalyzer
                 FilePath: friend.FilePath,
                 Line: friend.Line);
         }
+    }
+
+    private static IEnumerable<Violation> EvaluateMustDepend(ProjectGraph graph, MustDependRule rule)
+    {
+        foreach (var project in graph.Projects)
+        {
+            if (!MatchesAny(rule.From, project.Name))
+                continue;
+            if (rule.Exceptions.Any(ex => GlobPattern.IsMatch(ex.From, project.Name)))
+                continue;
+            if (graph.Dependencies(project.Name).Any(dep => MatchesAny(rule.To, dep)))
+                continue;
+
+            yield return new Violation(
+                rule.Id,
+                rule.Severity,
+                $"{rule.Description} {project.Name} şunlardan en az birine bağlanmalı: {string.Join(", ", rule.To)}",
+                project.Name,
+                string.Join(" | ", rule.To));
+        }
+    }
+
+    private static IEnumerable<Violation> EvaluateFanin(ProjectGraph graph, MaxFaninRule rule)
+    {
+        foreach (var project in graph.Projects)
+        {
+            if (!MatchesAny(rule.From, project.Name))
+                continue;
+
+            var count = graph.Dependents(project.Name).Count;
+            if (count <= rule.Max)
+                continue;
+
+            yield return new Violation(
+                rule.Id,
+                rule.Severity,
+                $"{rule.Description} {project.Name} {count} gelen bağımlılık içeriyor (üst sınır {rule.Max}).",
+                project.Name,
+                count.ToString());
+        }
+    }
+
+    private static IEnumerable<Violation> EvaluateDepth(ProjectGraph graph, MaxDepthRule rule)
+    {
+        foreach (var project in graph.Projects)
+        {
+            if (!MatchesAny(rule.From, project.Name))
+                continue;
+
+            var depth = graph.LongestSimplePathFrom(project.Name);
+            if (depth <= rule.Max)
+                continue;
+
+            yield return new Violation(
+                rule.Id,
+                rule.Severity,
+                $"{rule.Description} {project.Name} en uzun yol {depth} (üst sınır {rule.Max}).",
+                project.Name,
+                depth.ToString());
+        }
+    }
+
+    private static IEnumerable<Violation> EvaluateTfmAligned(ProjectGraph graph, TfmAlignedRule rule)
+    {
+        var projects = graph.Projects
+            .Where(p => rule.From.Count == 0 || MatchesAny(rule.From, p.Name))
+            .ToArray();
+        var distinct = projects
+            .Select(p => $"{p.Name} {(p.TargetFramework ?? "?")}")
+            .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        var tfms = projects
+            .Select(p => p.TargetFramework ?? "?")
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        if (tfms.Length <= 1)
+            yield break;
+
+        yield return new Violation(
+            rule.Id,
+            rule.Severity,
+            $"{rule.Description} {string.Join(", ", distinct)}",
+            "TargetFramework",
+            string.Join(" | ", tfms.OrderBy(x => x, StringComparer.OrdinalIgnoreCase)));
     }
 
     private static bool IsSuppressed(string? suppression, string ruleId) =>

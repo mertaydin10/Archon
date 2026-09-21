@@ -87,6 +87,34 @@ public sealed record InternalsDenyRule(
     IReadOnlyList<string> To,
     IReadOnlyList<RuleException> Exceptions) : ArchitectureRule(Id, Description, Severity);
 
+public sealed record MustDependRule(
+    string Id,
+    string Description,
+    RuleSeverity Severity,
+    IReadOnlyList<string> From,
+    IReadOnlyList<string> To,
+    IReadOnlyList<RuleException> Exceptions) : ArchitectureRule(Id, Description, Severity);
+
+public sealed record MaxFaninRule(
+    string Id,
+    string Description,
+    RuleSeverity Severity,
+    IReadOnlyList<string> From,
+    int Max) : ArchitectureRule(Id, Description, Severity);
+
+public sealed record MaxDepthRule(
+    string Id,
+    string Description,
+    RuleSeverity Severity,
+    IReadOnlyList<string> From,
+    int Max) : ArchitectureRule(Id, Description, Severity);
+
+public sealed record TfmAlignedRule(
+    string Id,
+    string Description,
+    RuleSeverity Severity,
+    IReadOnlyList<string> From) : ArchitectureRule(Id, Description, Severity);
+
 public sealed record RuleSet(
     string Name,
     string? SolutionPath,

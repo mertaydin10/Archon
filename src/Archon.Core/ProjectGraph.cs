@@ -98,6 +98,32 @@ public sealed class ProjectGraph
         return found;
     }
 
+    public int LongestSimplePathFrom(string name)
+    {
+        if (!Contains(name))
+            return 0;
+
+        var best = 0;
+        var visiting = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { name };
+
+        void Visit(string node, int depth)
+        {
+            if (depth > best)
+                best = depth;
+
+            foreach (var next in Dependencies(node))
+            {
+                if (!visiting.Add(next))
+                    continue;
+                Visit(next, depth + 1);
+                visiting.Remove(next);
+            }
+        }
+
+        Visit(name, 0);
+        return best;
+    }
+
     public ProjectGraph Exclude(IReadOnlyList<string> globs)
     {
         if (globs.Count == 0)
