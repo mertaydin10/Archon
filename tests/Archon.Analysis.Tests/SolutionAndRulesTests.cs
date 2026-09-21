@@ -319,6 +319,69 @@ public sealed class SolutionAndRulesTests
     }
 
     [Fact]
+    public void Yaml_parses_must_depend_fanin_depth_and_tfm()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "archon-depth-" + Guid.NewGuid().ToString("N") + ".yaml");
+        File.WriteAllText(path,
+            """
+            name: Shop
+            rules:
+              - id: api-domain
+                kind: must-depend
+                from: "*.Api"
+                to: "*.Domain"
+              - id: domain-fanin
+                kind: max-fanin
+                from: "*.Domain"
+                max: 2
+              - id: api-depth
+                kind: max-depth
+                from: "*.Api"
+                max: 3
+              - id: tfm
+                kind: tfm-aligned
+            """);
+        try
+        {
+            var ruleSet = new RuleSetLoader().Load(path);
+            Assert.Contains(ruleSet.Rules, r => r is MustDependRule);
+            Assert.Contains(ruleSet.Rules, r => r is MaxFaninRule);
+            Assert.Contains(ruleSet.Rules, r => r is MaxDepthRule);
+            Assert.Contains(ruleSet.Rules, r => r is TfmAlignedRule);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Inherited_target_framework_comes_from_directory_build_props()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "archon-tfm-" + Guid.NewGuid().ToString("N"));
+        var src = Path.Combine(root, "src", "Lib");
+        Directory.CreateDirectory(src);
+        File.WriteAllText(Path.Combine(root, "Directory.Build.props"),
+            """
+            <Project>
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+              </PropertyGroup>
+            </Project>
+            """);
+        var csproj = Path.Combine(src, "Lib.csproj");
+        File.WriteAllText(csproj, """<Project Sdk="Microsoft.NET.Sdk"></Project>""");
+        try
+        {
+            Assert.Equal("net10.0", SolutionGraphLoader.ReadTargetFramework(csproj));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Friend_index_reads_csproj_and_source_attribute()
     {
         var root = Path.Combine(Path.GetTempPath(), "archon-friends-" + Guid.NewGuid().ToString("N"));

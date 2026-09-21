@@ -338,6 +338,113 @@ public sealed class ArchitectureAnalyzerTests
         Assert.Contains(filtered.Edges, e => e.From == "Api" && e.To == "Domain");
     }
 
+    [Fact]
+    public void Must_depend_flags_missing_required_edge()
+    {
+        var graph = Graph(["Api", "Domain", "Catalog"], [("Api", "Catalog")]);
+        var rules = new RuleSet("shop", null,
+        [
+            new MustDependRule("api-domain", "Api Domain'e bağlanmalı", RuleSeverity.Error,
+                ["Api"], ["Domain"], [])
+        ]);
+
+        var report = new ArchitectureAnalyzer().Analyze(graph, rules, "shop.sln");
+
+        var hit = Assert.Single(report.Violations);
+        Assert.Equal("Api", hit.From);
+        Assert.Equal("Domain", hit.To);
+    }
+
+    [Fact]
+    public void Max_fanin_flags_too_many_incoming_edges()
+    {
+        var graph = Graph(
+            ["Domain", "A", "B", "C"],
+            [("A", "Domain"), ("B", "Domain"), ("C", "Domain")]);
+        var rules = new RuleSet("shop", null,
+        [
+            new MaxFaninRule("domain-fanin", "en fazla 2", RuleSeverity.Error, ["Domain"], 2)
+        ]);
+
+        var report = new ArchitectureAnalyzer().Analyze(graph, rules, "shop.sln");
+
+        var hit = Assert.Single(report.Violations);
+        Assert.Equal("3", hit.To);
+    }
+
+    [Fact]
+    public void Max_depth_flags_long_simple_path()
+    {
+        var graph = Graph(
+            ["Api", "App", "Domain", "Infra"],
+            [("Api", "App"), ("App", "Domain"), ("Domain", "Infra")]);
+        var rules = new RuleSet("shop", null,
+        [
+            new MaxDepthRule("api-depth", "en fazla 2", RuleSeverity.Error, ["Api"], 2)
+        ]);
+
+        var report = new ArchitectureAnalyzer().Analyze(graph, rules, "shop.sln");
+
+        var hit = Assert.Single(report.Violations);
+        Assert.Equal("3", hit.To);
+    }
+
+    [Fact]
+    public void Tfm_aligned_flags_mixed_frameworks()
+    {
+        var graph = ProjectGraph.Create(
+            [
+                new ProjectNode("Api", "Api.csproj", "net8.0"),
+                new ProjectNode("Domain", "Domain.csproj", "net10.0")
+            ],
+            []);
+        var rules = new RuleSet("shop", null,
+        [
+            new TfmAlignedRule("tfm", "aynı TFM", RuleSeverity.Error, [])
+        ]);
+
+        var report = new ArchitectureAnalyzer().Analyze(graph, rules, "shop.sln");
+
+        var hit = Assert.Single(report.Violations);
+        Assert.Contains("net8.0", hit.To);
+        Assert.Contains("net10.0", hit.To);
+    }
+
+    [Fact]
+    public void Only_filter_keeps_matching_rule_ids()
+    {
+        var graph = Graph(["Catalog", "Payments"], [("Catalog", "Payments")]);
+        var rules = new RuleSet("shop", null,
+        [
+            new DenyRule("catalog-payments", "hayır", RuleSeverity.Error, ["Catalog"], ["Payments"], []),
+            new AcyclicRule("no-cycles", "döngü yok", RuleSeverity.Error)
+        ]);
+        var full = new ArchitectureAnalyzer().Analyze(graph, rules, "shop.sln");
+
+        var filtered = ReportFilter.Only(full, ["catalog-*"]);
+
+        var hit = Assert.Single(filtered.Violations);
+        Assert.Equal("catalog-payments", hit.RuleId);
+    }
+
+    [Fact]
+    public void Diff_reports_added_and_removed()
+    {
+        var previous = new[]
+        {
+            new Violation("old", RuleSeverity.Error, "", "A", "B")
+        };
+        var current = new[]
+        {
+            new Violation("new", RuleSeverity.Error, "", "C", "D")
+        };
+
+        var diff = ViolationDiffCalculator.Compute(previous, current);
+
+        Assert.Equal("new", Assert.Single(diff.Added).RuleId);
+        Assert.Equal("old", Assert.Single(diff.Removed).RuleId);
+    }
+
     private static ProjectGraph Graph(
         IEnumerable<string> names,
         IEnumerable<(string From, string To)> edges)
