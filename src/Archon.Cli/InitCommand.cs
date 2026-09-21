@@ -104,5 +104,23 @@ internal sealed class InitCommand : Command<InitSettings>
             kind: version-aligned
             packages:
               - Newtonsoft.Json
+
+          - id: api-must-touch-domain
+            kind: must-depend
+            from: "*.Api"
+            to: "*.Domain"
+
+          - id: domain-fanin
+            kind: max-fanin
+            from: "*.Domain"
+            max: 2
+
+          - id: api-depth
+            kind: max-depth
+            from: "*.Api"
+            max: 3
+
+          - id: tfm-aligned
+            kind: tfm-aligned
         """;
 }

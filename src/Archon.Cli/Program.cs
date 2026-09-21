@@ -22,6 +22,9 @@ app.Configure(config =>
     config.AddCommand<StatsCommand>("stats")
         .WithDescription("Proje bağlaşım metriklerini (Ce/Ca/I) yazar.")
         .WithExample("stats", "samples/ContosoShop/ContosoShop.sln");
+    config.AddCommand<DiffCommand>("diff")
+        .WithDescription("Mevcut ihlalleri bir baseline ile karşılaştırır.")
+        .WithExample("diff", "artifacts/baseline.json");
 });
 
 return app.Run(args);

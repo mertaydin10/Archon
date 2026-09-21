@@ -39,6 +39,10 @@ internal sealed class AnalyzeSettings : CommandSettings
     [CommandOption("--fail-on-warning")]
     [Description("Uyarıları da hata gibi işler (çıkış kodu 1).")]
     public bool FailOnWarning { get; init; }
+
+    [CommandOption("--only <RULE>")]
+    [Description("Yalnızca eşleşen kural kimliklerini göster. Glob kabul eder.")]
+    public string[]? Only { get; init; }
 }
 
 internal sealed class AnalyzeCommand : Command<AnalyzeSettings>
@@ -65,6 +69,8 @@ internal sealed class AnalyzeCommand : Command<AnalyzeSettings>
 
             if (!string.IsNullOrWhiteSpace(settings.Baseline))
                 report = BaselineFilter.Apply(report, BaselineFile.LoadKeys(settings.Baseline));
+
+            report = ReportFilter.Only(report, settings.Only);
 
             WriteReport(report, settings);
             return report.ShouldFail(settings.FailOnWarning) ? 1 : 0;
