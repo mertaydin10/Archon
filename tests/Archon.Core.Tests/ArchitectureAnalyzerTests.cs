@@ -445,6 +445,75 @@ public sealed class ArchitectureAnalyzerTests
         Assert.Equal("old", Assert.Single(diff.Removed).RuleId);
     }
 
+    [Fact]
+    public void Shortest_path_returns_bfs_route()
+    {
+        var graph = Graph(
+            ["Catalog", "Domain", "Infrastructure", "Payments"],
+            [("Catalog", "Domain"), ("Catalog", "Payments"), ("Payments", "Domain"), ("Domain", "Infrastructure")]);
+
+        var path = graph.ShortestPath("Catalog", "Infrastructure");
+
+        Assert.Equal(["Catalog", "Domain", "Infrastructure"], path);
+    }
+
+    [Fact]
+    public void Transitive_deny_reports_reachability_path()
+    {
+        var graph = Graph(
+            ["Catalog", "Domain", "Infrastructure"],
+            [("Catalog", "Domain"), ("Domain", "Infrastructure")]);
+        var rules = new RuleSet("shop", null,
+        [
+            new TransitiveDenyRule("no-reach", "ulaşma", RuleSeverity.Error,
+                ["*Catalog*"], ["*Infrastructure*"], [])
+        ]);
+
+        var report = new ArchitectureAnalyzer().Analyze(graph, rules, "shop.sln");
+
+        var hit = Assert.Single(report.Violations);
+        Assert.Equal("Catalog", hit.From);
+        Assert.Equal("Infrastructure", hit.To);
+        Assert.Contains("Domain", hit.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Package_allow_flags_unlisted_package()
+    {
+        var graph = Graph(["Shop.Domain"], []);
+        var packages = new PackageIndex(
+        [
+            new PackageReference("Shop.Domain", "Newtonsoft.Json", "13.0.3")
+        ]);
+        var rules = new RuleSet("shop", null,
+        [
+            new PackageAllowRule("allow", "yalnızca System", RuleSeverity.Error,
+                ["*.Domain"], ["System.*"], [])
+        ]);
+
+        var report = new ArchitectureAnalyzer().Analyze(graph, rules, "shop.sln", packages: packages);
+
+        var hit = Assert.Single(report.Violations);
+        Assert.Equal("Newtonsoft.Json", hit.To);
+    }
+
+    [Fact]
+    public void Sdk_deny_flags_forbidden_sdk()
+    {
+        var graph = ProjectGraph.Create(
+            [new ProjectNode("Payments", "Payments.csproj", "net10.0", "Microsoft.NET.Sdk.Web")],
+            []);
+        var rules = new RuleSet("shop", null,
+        [
+            new SdkDenyRule("no-web", "web yok", RuleSeverity.Error, ["*Payments*"], ["*.Web"])
+        ]);
+
+        var report = new ArchitectureAnalyzer().Analyze(graph, rules, "shop.sln");
+
+        var hit = Assert.Single(report.Violations);
+        Assert.Equal("Microsoft.NET.Sdk.Web", hit.To);
+    }
+
     private static ProjectGraph Graph(
         IEnumerable<string> names,
         IEnumerable<(string From, string To)> edges)

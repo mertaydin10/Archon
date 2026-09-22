@@ -356,6 +356,59 @@ public sealed class SolutionAndRulesTests
     }
 
     [Fact]
+    public void Yaml_parses_reach_package_allow_and_sdk_deny()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "archon-reach-" + Guid.NewGuid().ToString("N") + ".yaml");
+        File.WriteAllText(path,
+            """
+            name: Shop
+            rules:
+              - id: reach
+                kind: deny-transitive
+                from: "*Catalog*"
+                to: "*Infrastructure*"
+              - id: allow
+                kind: package-allow
+                from: "*.Domain"
+                packages:
+                  - System.*
+              - id: sdk
+                kind: sdk-deny
+                from: "*Payments*"
+                sdks: Microsoft.NET.Sdk.Web
+            """);
+        try
+        {
+            var ruleSet = new RuleSetLoader().Load(path);
+            Assert.Contains(ruleSet.Rules, r => r is TransitiveDenyRule);
+            Assert.Contains(ruleSet.Rules, r => r is PackageAllowRule);
+            var sdk = Assert.IsType<SdkDenyRule>(ruleSet.Rules.Single(r => r is SdkDenyRule));
+            Assert.Equal("Microsoft.NET.Sdk.Web", Assert.Single(sdk.Sdks));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Loader_reads_sdk_attribute()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "archon-sdk-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var csproj = Path.Combine(root, "Lib.csproj");
+        File.WriteAllText(csproj, """<Project Sdk="Microsoft.NET.Sdk.Web"></Project>""");
+        try
+        {
+            Assert.Equal("Microsoft.NET.Sdk.Web", SolutionGraphLoader.ReadSdk(csproj));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Inherited_target_framework_comes_from_directory_build_props()
     {
         var root = Path.Combine(Path.GetTempPath(), "archon-tfm-" + Guid.NewGuid().ToString("N"));
