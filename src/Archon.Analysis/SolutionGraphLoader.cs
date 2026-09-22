@@ -37,7 +37,8 @@ public sealed class SolutionGraphLoader
 
             var projectPath = Path.GetFullPath(Path.Combine(solutionDir, relative));
             pathByName[name] = projectPath;
-            nodes.Add(new ProjectNode(name, projectPath, ReadTargetFramework(projectPath)));
+            var facts = ReadProjectFacts(projectPath);
+            nodes.Add(new ProjectNode(name, projectPath, facts.TargetFramework, facts.Sdk, facts.OutputType));
         }
 
         var pathToName = pathByName
@@ -84,23 +85,34 @@ public sealed class SolutionGraphLoader
         }
     }
 
-    public static string? ReadTargetFramework(string projectPath)
+    public static string? ReadTargetFramework(string projectPath) =>
+        ReadProjectFacts(projectPath).TargetFramework;
+
+    public static string? ReadSdk(string projectPath) =>
+        ReadProjectFacts(projectPath).Sdk;
+
+    public static (string? TargetFramework, string? Sdk, string? OutputType) ReadProjectFacts(string projectPath)
     {
         if (!File.Exists(projectPath))
-            return null;
+            return (null, null, null);
 
         try
         {
             var document = XDocument.Load(projectPath);
-            var fromProject = ReadFramework(document);
-            if (!string.IsNullOrWhiteSpace(fromProject))
-                return fromProject;
-
-            return ReadInheritedTargetFramework(Path.GetDirectoryName(projectPath) ?? Environment.CurrentDirectory);
+            var framework = ReadFramework(document)
+                ?? ReadInheritedTargetFramework(Path.GetDirectoryName(projectPath) ?? Environment.CurrentDirectory);
+            var sdk = document.Root?.Attribute("Sdk")?.Value?.Trim();
+            if (string.IsNullOrWhiteSpace(sdk))
+                sdk = document.Descendants("Sdk").Select(x => x.Attribute("Name")?.Value).FirstOrDefault(x => !string.IsNullOrWhiteSpace(x));
+            var output = document.Descendants("OutputType").Select(x => x.Value).FirstOrDefault();
+            return (
+                framework,
+                string.IsNullOrWhiteSpace(sdk) ? null : sdk.Trim(),
+                string.IsNullOrWhiteSpace(output) ? null : output.Trim());
         }
         catch (Exception)
         {
-            return null;
+            return (null, null, null);
         }
     }
 

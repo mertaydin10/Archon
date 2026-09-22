@@ -167,6 +167,26 @@ public sealed class RuleSetLoader
                 description,
                 severity,
                 Flatten(document.From)),
+            "deny-transitive" or "reach-deny" => new TransitiveDenyRule(
+                document.Id.Trim(),
+                description,
+                severity,
+                ReadPatterns(document.From, "from"),
+                ReadPatterns(document.To, "to"),
+                ReadExceptions(document.Except)),
+            "package-allow" => new PackageAllowRule(
+                document.Id.Trim(),
+                description,
+                severity,
+                ReadPatterns(document.From, "from"),
+                Flatten(document.Packages ?? document.To),
+                ReadExceptions(document.Except)),
+            "sdk-deny" => new SdkDenyRule(
+                document.Id.Trim(),
+                description,
+                severity,
+                ReadPatterns(document.From, "from"),
+                ReadPatterns(document.Sdks ?? document.To, "sdks")),
             _ => throw new InvalidOperationException($"Unknown rule kind '{document.Kind}' in '{document.Id}'.")
         };
     }
@@ -237,6 +257,7 @@ public sealed class RuleSetLoader
         public object? From { get; set; }
         public object? To { get; set; }
         public object? Packages { get; set; }
+        public object? Sdks { get; set; }
         public List<string>? Layers { get; set; }
         public int? Max { get; set; }
         public List<ExceptionDocument>? Except { get; set; }
