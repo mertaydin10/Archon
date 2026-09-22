@@ -115,6 +115,29 @@ public sealed record TfmAlignedRule(
     RuleSeverity Severity,
     IReadOnlyList<string> From) : ArchitectureRule(Id, Description, Severity);
 
+public sealed record TransitiveDenyRule(
+    string Id,
+    string Description,
+    RuleSeverity Severity,
+    IReadOnlyList<string> From,
+    IReadOnlyList<string> To,
+    IReadOnlyList<RuleException> Exceptions) : ArchitectureRule(Id, Description, Severity);
+
+public sealed record PackageAllowRule(
+    string Id,
+    string Description,
+    RuleSeverity Severity,
+    IReadOnlyList<string> From,
+    IReadOnlyList<string> Packages,
+    IReadOnlyList<RuleException> Exceptions) : ArchitectureRule(Id, Description, Severity);
+
+public sealed record SdkDenyRule(
+    string Id,
+    string Description,
+    RuleSeverity Severity,
+    IReadOnlyList<string> From,
+    IReadOnlyList<string> Sdks) : ArchitectureRule(Id, Description, Severity);
+
 public sealed record RuleSet(
     string Name,
     string? SolutionPath,

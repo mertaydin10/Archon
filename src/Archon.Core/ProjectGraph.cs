@@ -1,6 +1,11 @@
 namespace Archon.Core;
 
-public sealed record ProjectNode(string Name, string Path, string? TargetFramework);
+public sealed record ProjectNode(
+    string Name,
+    string Path,
+    string? TargetFramework,
+    string? Sdk = null,
+    string? OutputType = null);
 
 public sealed record ProjectEdge(string From, string To);
 
@@ -96,6 +101,35 @@ public sealed class ProjectGraph
 
         found.Sort(StringComparer.OrdinalIgnoreCase);
         return found;
+    }
+
+    public IReadOnlyList<string>? ShortestPath(string from, string to)
+    {
+        if (!Contains(from) || !Contains(to))
+            return null;
+        if (from.Equals(to, StringComparison.OrdinalIgnoreCase))
+            return [from];
+
+        var previous = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { from };
+        var queue = new Queue<string>();
+        queue.Enqueue(from);
+
+        while (queue.Count > 0)
+        {
+            var node = queue.Dequeue();
+            foreach (var next in Dependencies(node))
+            {
+                if (!seen.Add(next))
+                    continue;
+                previous[next] = node;
+                if (next.Equals(to, StringComparison.OrdinalIgnoreCase))
+                    return Reconstruct(from, to, previous);
+                queue.Enqueue(next);
+            }
+        }
+
+        return null;
     }
 
     public int LongestSimplePathFrom(string name)
@@ -200,6 +234,23 @@ public sealed class ProjectGraph
 
         if (!list.Exists(x => x.Equals(value, StringComparison.OrdinalIgnoreCase)))
             list.Add(value);
+    }
+
+    private static IReadOnlyList<string> Reconstruct(
+        string from,
+        string to,
+        Dictionary<string, string> previous)
+    {
+        var path = new List<string> { to };
+        var current = to;
+        while (!current.Equals(from, StringComparison.OrdinalIgnoreCase))
+        {
+            current = previous[current];
+            path.Add(current);
+        }
+
+        path.Reverse();
+        return path;
     }
 
     private static IReadOnlyList<string> NormalizeCycle(IReadOnlyList<string> cycle)

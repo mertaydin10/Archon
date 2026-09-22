@@ -63,6 +63,15 @@ public sealed class ArchitectureAnalyzer
                 case TfmAlignedRule tfm:
                     violations.AddRange(EvaluateTfmAligned(graph, tfm));
                     break;
+                case TransitiveDenyRule reach:
+                    violations.AddRange(EvaluateTransitiveDeny(graph, reach));
+                    break;
+                case PackageAllowRule packageAllow:
+                    violations.AddRange(EvaluatePackageAllow(packageAllow, packages));
+                    break;
+                case SdkDenyRule sdk:
+                    violations.AddRange(EvaluateSdkDeny(graph, sdk));
+                    break;
             }
         }
 
@@ -386,6 +395,75 @@ public sealed class ArchitectureAnalyzer
             $"{rule.Description} {string.Join(", ", distinct)}",
             "TargetFramework",
             string.Join(" | ", tfms.OrderBy(x => x, StringComparer.OrdinalIgnoreCase)));
+    }
+
+    private static IEnumerable<Violation> EvaluateTransitiveDeny(ProjectGraph graph, TransitiveDenyRule rule)
+    {
+        foreach (var from in graph.Projects)
+        {
+            if (!MatchesAny(rule.From, from.Name))
+                continue;
+
+            foreach (var to in graph.Projects)
+            {
+                if (from.Name.Equals(to.Name, StringComparison.OrdinalIgnoreCase))
+                    continue;
+                if (!MatchesAny(rule.To, to.Name))
+                    continue;
+                if (IsExcepted(rule.Exceptions, from.Name, to.Name))
+                    continue;
+
+                var path = graph.ShortestPath(from.Name, to.Name);
+                if (path is null || path.Count < 2)
+                    continue;
+
+                yield return new Violation(
+                    rule.Id,
+                    rule.Severity,
+                    $"{rule.Description} Yol: {string.Join(" → ", path)}",
+                    from.Name,
+                    to.Name);
+            }
+        }
+    }
+
+    private static IEnumerable<Violation> EvaluatePackageAllow(PackageAllowRule rule, PackageIndex packages)
+    {
+        foreach (var package in packages.Packages)
+        {
+            if (!MatchesAny(rule.From, package.ProjectName))
+                continue;
+            if (MatchesAny(rule.Packages, package.PackageId))
+                continue;
+            if (IsExcepted(rule.Exceptions, package.ProjectName, package.PackageId))
+                continue;
+
+            yield return new Violation(
+                rule.Id,
+                rule.Severity,
+                $"{rule.Description} {package.ProjectName} → {package.PackageId} izinli listede yok.",
+                package.ProjectName,
+                package.PackageId);
+        }
+    }
+
+    private static IEnumerable<Violation> EvaluateSdkDeny(ProjectGraph graph, SdkDenyRule rule)
+    {
+        foreach (var project in graph.Projects)
+        {
+            if (!MatchesAny(rule.From, project.Name))
+                continue;
+            var sdk = project.Sdk ?? "";
+            if (string.IsNullOrWhiteSpace(sdk) || !MatchesAny(rule.Sdks, sdk))
+                continue;
+
+            yield return new Violation(
+                rule.Id,
+                rule.Severity,
+                $"{rule.Description} {project.Name} Sdk={sdk}",
+                project.Name,
+                sdk);
+        }
     }
 
     private static bool IsSuppressed(string? suppression, string ruleId) =>
