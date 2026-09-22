@@ -25,6 +25,9 @@ app.Configure(config =>
     config.AddCommand<DiffCommand>("diff")
         .WithDescription("Mevcut ihlalleri bir baseline ile karşılaştırır.")
         .WithExample("diff", "artifacts/baseline.json");
+    config.AddCommand<PathCommand>("path")
+        .WithDescription("İki proje arasındaki en kısa bağımlılık yolunu yazar.")
+        .WithExample("path", "Contoso.Catalog", "Contoso.Infrastructure");
 });
 
 return app.Run(args);

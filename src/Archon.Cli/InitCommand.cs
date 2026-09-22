@@ -122,5 +122,22 @@ internal sealed class InitCommand : Command<InitSettings>
 
           - id: tfm-aligned
             kind: tfm-aligned
+
+          - id: catalog-no-infra-reach
+            kind: deny-transitive
+            from: "*Catalog*"
+            to: "*Infrastructure*"
+
+          - id: domain-package-allow
+            kind: package-allow
+            from: "*.Domain"
+            packages:
+              - System.*
+
+          - id: payments-no-web-sdk
+            kind: sdk-deny
+            from: "*Payments*"
+            sdks:
+              - Microsoft.NET.Sdk.Web
         """;
 }
