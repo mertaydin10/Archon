@@ -42,3 +42,6 @@ jobs:
         run: |
           dotnet run --project src/Archon.Cli -- analyze Archon.sln --rules archon.self.yaml --write-baseline artifacts/self-baseline.json
           dotnet run --project src/Archon.Cli -- diff artifacts/self-baseline.json Archon.sln --rules archon.self.yaml
+
+      - name: En kısa yol
+        run: dotnet run --project src/Archon.Cli -- path Archon.Cli Archon.Core --rules archon.self.yaml

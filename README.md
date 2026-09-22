@@ -13,6 +13,10 @@
 - `must-depend` — eşleşen proje en az bir zorunlu hedefe bağlanmalı
 - `max-fanin` / `max-depth` — gelen bağımlılık ve en uzun yol üst sınırı
 - `tfm-aligned` — TargetFramework hizası (Directory.Build.props dahil)
+- `deny-transitive` — geçişli erişim yasağı
+- `package-allow` — proje için izinli NuGet listesi
+- `sdk-deny` — yasak MSBuild SDK (`Microsoft.NET.Sdk.Web` vb.)
+- `archon path` — iki proje arasındaki en kısa bağımlılık yolu
 - `exclude` ve `--exclude` ile proje grafından çıkarma
 - `--only` ile kural süzme; `archon diff` ile baseline karşılaştırması
 - Ce / Ca / I bağlaşım metrikleri (`archon stats`)
@@ -32,6 +36,7 @@ dotnet run --project src/Archon.Cli -- analyze samples/ContosoShop/ContosoShop.s
 dotnet run --project src/Archon.Cli -- analyze samples/ContosoShop/ContosoShop.sln --only "api-*" --only domain-fanin
 dotnet run --project src/Archon.Cli -- analyze samples/ContosoShop/ContosoShop.sln --write-baseline artifacts/baseline.json
 dotnet run --project src/Archon.Cli -- diff artifacts/baseline.json samples/ContosoShop/ContosoShop.sln
+dotnet run --project src/Archon.Cli -- path Contoso.Catalog Contoso.Infrastructure
 dotnet run --project src/Archon.Cli -- validate archon.yaml
 dotnet run --project src/Archon.Cli -- analyze Archon.sln --rules archon.self.yaml
 dotnet test
