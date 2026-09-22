@@ -52,3 +52,17 @@ rules:
     kind: tfm-aligned
     description: Archon projeleri aynı TFM'de olmalı.
 
+  - id: core-no-test-reach
+    kind: deny-transitive
+    description: Çekirdek test projelerine ulaşamaz.
+    from: Archon.Core
+    to: "*Tests*"
+
+  - id: core-no-web-sdk
+    kind: sdk-deny
+    description: Çekirdek web SDK kullanamaz.
+    from: Archon.Core
+    sdks:
+      - "*.Web"
+      - Microsoft.NET.Sdk.Web
+

@@ -103,3 +103,24 @@ rules:
     kind: tfm-aligned
     description: TargetFramework solution genelinde aynı olmalı.
 
+  - id: catalog-no-infra-reach
+    kind: deny-transitive
+    description: Catalog, Infrastructure'a geçişli olarak da ulaşamaz.
+    from: "*Catalog*"
+    to: "*Infrastructure*"
+
+  - id: domain-package-allow
+    kind: package-allow
+    description: Domain yalnızca izinli paketleri alabilir.
+    from: "*.Domain"
+    packages:
+      - System.*
+
+  - id: payments-no-web-sdk
+    kind: sdk-deny
+    description: Payments web SDK kullanamaz.
+    from: "*Payments*"
+    sdks:
+      - "*.Web"
+      - Microsoft.NET.Sdk.Web
+
