@@ -20,14 +20,9 @@ public sealed class SolutionGraphLoader
         var nodes = new List<ProjectNode>();
         var pathByName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var line in File.ReadLines(fullSolution))
+        foreach (var (name, rawRelative) in ReadSolutionEntries(fullSolution))
         {
-            var match = ProjectLine.Match(line);
-            if (!match.Success)
-                continue;
-
-            var name = match.Groups[1].Value;
-            var relative = match.Groups[2].Value.Replace('\\', Path.DirectorySeparatorChar);
+            var relative = rawRelative.Replace('\\', Path.DirectorySeparatorChar);
             if (!relative.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase)
                 && !relative.EndsWith(".fsproj", StringComparison.OrdinalIgnoreCase)
                 && !relative.EndsWith(".vbproj", StringComparison.OrdinalIgnoreCase))
@@ -57,6 +52,41 @@ public sealed class SolutionGraphLoader
         }
 
         return ProjectGraph.Create(nodes, edges);
+    }
+
+    public static IReadOnlyList<(string Name, string RelativePath)> ReadSolutionEntries(string solutionPath)
+    {
+        if (solutionPath.EndsWith(".slnx", StringComparison.OrdinalIgnoreCase))
+            return ReadSlnxEntries(solutionPath);
+
+        var entries = new List<(string, string)>();
+        foreach (var line in File.ReadLines(solutionPath))
+        {
+            var match = ProjectLine.Match(line);
+            if (match.Success)
+                entries.Add((match.Groups[1].Value, match.Groups[2].Value));
+        }
+
+        return entries;
+    }
+
+    private static IReadOnlyList<(string Name, string RelativePath)> ReadSlnxEntries(string solutionPath)
+    {
+        XDocument document;
+        try
+        {
+            document = XDocument.Load(solutionPath);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Failed to parse '{solutionPath}'.", ex);
+        }
+
+        return document.Descendants("Project")
+            .Select(x => x.Attribute("Path")?.Value)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => (Path.GetFileNameWithoutExtension(x!.Replace('\\', '/')), x!))
+            .ToArray();
     }
 
     private static IEnumerable<string> ReadProjectReferences(string projectPath)

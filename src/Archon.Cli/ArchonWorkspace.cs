@@ -48,12 +48,14 @@ internal static class ArchonWorkspace
             var full = Path.GetFullPath(path);
             if (Directory.Exists(full))
             {
-                var solutions = Directory.GetFiles(full, "*.sln", SearchOption.TopDirectoryOnly);
+                var solutions = Directory.GetFiles(full, "*.sln", SearchOption.TopDirectoryOnly)
+                    .Concat(Directory.GetFiles(full, "*.slnx", SearchOption.TopDirectoryOnly))
+                    .ToArray();
                 if (solutions.Length == 1)
                     return solutions[0];
                 if (solutions.Length == 0)
-                    throw new InvalidOperationException($"'{full}' içinde .sln yok.");
-                throw new InvalidOperationException($"'{full}' içinde birden fazla .sln var. Dosyayı açıkça ver.");
+                    throw new InvalidOperationException($"'{full}' içinde .sln veya .slnx yok.");
+                throw new InvalidOperationException($"'{full}' içinde birden fazla solution var. Dosyayı açıkça ver.");
             }
 
             return full;
