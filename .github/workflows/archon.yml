@@ -16,6 +16,9 @@ jobs:
       - name: Test
         run: dotnet test Archon.sln --nologo
 
+      - name: Kural kalıplarını denetle
+        run: dotnet run --project src/Archon.Cli -- validate archon.self.yaml --strict
+
       - name: Kendi mimarisini doğrula
         run: dotnet run --project src/Archon.Cli -- analyze Archon.sln --rules archon.self.yaml --format markdown --out artifacts/archon.md
 

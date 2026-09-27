@@ -16,7 +16,11 @@
 - `deny-transitive` — geçişli erişim yasağı
 - `package-allow` — proje için izinli NuGet listesi
 - `sdk-deny` — yasak MSBuild SDK (`Microsoft.NET.Sdk.Web` vb.)
+- `naming` — proje adları verilen kalıplardan birine uymalı
+- `no-orphans` — kimsenin kullanmadığı kütüphane projesi (Exe, Web SDK ve test projeleri hariç)
 - `archon path` — iki proje arasındaki en kısa bağımlılık yolu
+- `archon validate --strict` — hiçbir projeye uymayan “ölü” kural kalıplarını yakalar
+- `.sln` ve .NET 10’un XML tabanlı `.slnx` biçimi
 - `exclude` ve `--exclude` ile proje grafından çıkarma
 - `--only` ile kural süzme; `archon diff` ile baseline karşılaştırması
 - Ce / Ca / I bağlaşım metrikleri (`archon stats`)
@@ -38,6 +42,7 @@ dotnet run --project src/Archon.Cli -- analyze samples/ContosoShop/ContosoShop.s
 dotnet run --project src/Archon.Cli -- diff artifacts/baseline.json samples/ContosoShop/ContosoShop.sln
 dotnet run --project src/Archon.Cli -- path Contoso.Catalog Contoso.Infrastructure
 dotnet run --project src/Archon.Cli -- validate archon.yaml
+dotnet run --project src/Archon.Cli -- validate archon.self.yaml --strict
 dotnet run --project src/Archon.Cli -- analyze Archon.sln --rules archon.self.yaml
 dotnet test
 ```
