@@ -139,5 +139,13 @@ internal sealed class InitCommand : Command<InitSettings>
             from: "*Payments*"
             sdks:
               - Microsoft.NET.Sdk.Web
+
+          - id: project-naming
+            kind: naming
+            patterns:
+              - "Contoso.*"
+
+          - id: no-orphans
+            kind: no-orphans
         """;
 }

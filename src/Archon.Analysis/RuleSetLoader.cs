@@ -187,6 +187,17 @@ public sealed class RuleSetLoader
                 severity,
                 ReadPatterns(document.From, "from"),
                 ReadPatterns(document.Sdks ?? document.To, "sdks")),
+            "naming" => new NamingRule(
+                document.Id.Trim(),
+                description,
+                severity,
+                Flatten(document.From),
+                ReadPatterns(document.Patterns ?? document.To, "patterns")),
+            "no-orphans" => new NoOrphansRule(
+                document.Id.Trim(),
+                description,
+                severity,
+                Flatten(document.From)),
             _ => throw new InvalidOperationException($"Unknown rule kind '{document.Kind}' in '{document.Id}'.")
         };
     }
@@ -258,6 +269,7 @@ public sealed class RuleSetLoader
         public object? To { get; set; }
         public object? Packages { get; set; }
         public object? Sdks { get; set; }
+        public object? Patterns { get; set; }
         public List<string>? Layers { get; set; }
         public int? Max { get; set; }
         public List<ExceptionDocument>? Except { get; set; }
