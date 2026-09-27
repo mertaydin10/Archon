@@ -124,3 +124,13 @@ rules:
       - "*.Web"
       - Microsoft.NET.Sdk.Web
 
+  - id: project-naming
+    kind: naming
+    description: Proje adları Contoso önekini taşımalı.
+    patterns:
+      - "Contoso.*"
+
+  - id: no-orphans
+    kind: no-orphans
+    description: Kullanılmayan kütüphane projesi bırakılamaz.
+

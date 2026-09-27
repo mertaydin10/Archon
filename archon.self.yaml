@@ -58,6 +58,16 @@ rules:
     from: Archon.Core
     to: "*Tests*"
 
+  - id: project-naming
+    kind: naming
+    description: Tüm projeler Archon önekini taşımalı.
+    patterns:
+      - "Archon.*"
+
+  - id: no-orphans
+    kind: no-orphans
+    description: Kullanılmayan kütüphane projesi bırakılamaz.
+
   - id: core-no-web-sdk
     kind: sdk-deny
     description: Çekirdek web SDK kullanamaz.
