@@ -72,6 +72,12 @@ public sealed class ArchitectureAnalyzer
                 case SdkDenyRule sdk:
                     violations.AddRange(EvaluateSdkDeny(graph, sdk));
                     break;
+                case NamingRule naming:
+                    violations.AddRange(EvaluateNaming(graph, naming));
+                    break;
+                case NoOrphansRule orphans:
+                    violations.AddRange(EvaluateOrphans(graph, orphans));
+                    break;
             }
         }
 
@@ -465,6 +471,49 @@ public sealed class ArchitectureAnalyzer
                 sdk);
         }
     }
+
+    private static IEnumerable<Violation> EvaluateNaming(ProjectGraph graph, NamingRule rule)
+    {
+        foreach (var project in graph.Projects)
+        {
+            if (rule.From.Count > 0 && !MatchesAny(rule.From, project.Name))
+                continue;
+            if (MatchesAny(rule.Patterns, project.Name))
+                continue;
+
+            yield return new Violation(
+                rule.Id,
+                rule.Severity,
+                $"{rule.Description} {project.Name} şu kalıplardan hiçbirine uymuyor: {string.Join(", ", rule.Patterns)}",
+                project.Name,
+                string.Join(" | ", rule.Patterns));
+        }
+    }
+
+    private static IEnumerable<Violation> EvaluateOrphans(ProjectGraph graph, NoOrphansRule rule)
+    {
+        foreach (var project in graph.Projects)
+        {
+            if (rule.From.Count > 0 && !MatchesAny(rule.From, project.Name))
+                continue;
+            if (graph.Dependents(project.Name).Count > 0 || IsEntryPoint(project))
+                continue;
+
+            yield return new Violation(
+                rule.Id,
+                rule.Severity,
+                $"{rule.Description} {project.Name} hiçbir proje tarafından kullanılmıyor ve giriş noktası değil.",
+                project.Name,
+                null);
+        }
+    }
+
+    private static bool IsEntryPoint(ProjectNode project) =>
+        project.OutputType is not null
+            && (project.OutputType.Equals("Exe", StringComparison.OrdinalIgnoreCase)
+                || project.OutputType.Equals("WinExe", StringComparison.OrdinalIgnoreCase))
+        || project.Sdk is not null && project.Sdk.EndsWith(".Web", StringComparison.OrdinalIgnoreCase)
+        || GlobPattern.IsMatch("*Tests*", project.Name);
 
     private static bool IsSuppressed(string? suppression, string ruleId) =>
         suppression is "*"

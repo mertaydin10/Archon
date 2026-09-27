@@ -138,6 +138,19 @@ public sealed record SdkDenyRule(
     IReadOnlyList<string> From,
     IReadOnlyList<string> Sdks) : ArchitectureRule(Id, Description, Severity);
 
+public sealed record NamingRule(
+    string Id,
+    string Description,
+    RuleSeverity Severity,
+    IReadOnlyList<string> From,
+    IReadOnlyList<string> Patterns) : ArchitectureRule(Id, Description, Severity);
+
+public sealed record NoOrphansRule(
+    string Id,
+    string Description,
+    RuleSeverity Severity,
+    IReadOnlyList<string> From) : ArchitectureRule(Id, Description, Severity);
+
 public sealed record RuleSet(
     string Name,
     string? SolutionPath,
