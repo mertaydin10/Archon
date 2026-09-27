@@ -392,6 +392,63 @@ public sealed class SolutionAndRulesTests
     }
 
     [Fact]
+    public void Loader_reads_slnx_solution()
+    {
+        var root = CreateShop();
+        try
+        {
+            var slnx = Path.Combine(root, "Shop.slnx");
+            File.WriteAllText(slnx,
+                """
+                <Solution>
+                  <Folder Name="/src/">
+                    <Project Path="src/Shop.Domain/Shop.Domain.csproj" />
+                    <Project Path="src/Shop.Payments/Shop.Payments.csproj" />
+                    <Project Path="src\Shop.Catalog\Shop.Catalog.csproj" />
+                  </Folder>
+                </Solution>
+                """);
+
+            var graph = new SolutionGraphLoader().Load(slnx);
+
+            Assert.Equal(3, graph.Projects.Count);
+            Assert.Contains(graph.Edges, e => e.From == "Shop.Catalog" && e.To == "Shop.Payments");
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Yaml_parses_naming_and_no_orphans()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "archon-naming-" + Guid.NewGuid().ToString("N") + ".yaml");
+        File.WriteAllText(path,
+            """
+            name: Shop
+            rules:
+              - id: naming
+                kind: naming
+                patterns:
+                  - "Shop.*"
+              - id: orphans
+                kind: no-orphans
+            """);
+        try
+        {
+            var ruleSet = new RuleSetLoader().Load(path);
+            var naming = Assert.IsType<NamingRule>(ruleSet.Rules.Single(r => r is NamingRule));
+            Assert.Equal("Shop.*", Assert.Single(naming.Patterns));
+            Assert.Contains(ruleSet.Rules, r => r is NoOrphansRule);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void Loader_reads_sdk_attribute()
     {
         var root = Path.Combine(Path.GetTempPath(), "archon-sdk-" + Guid.NewGuid().ToString("N"));

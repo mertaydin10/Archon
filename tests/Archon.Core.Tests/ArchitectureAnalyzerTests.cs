@@ -514,6 +514,62 @@ public sealed class ArchitectureAnalyzerTests
         Assert.Equal("Microsoft.NET.Sdk.Web", hit.To);
     }
 
+    [Fact]
+    public void Naming_flags_projects_outside_patterns()
+    {
+        var graph = Graph(["Contoso.Api", "LegacyReports"], []);
+        var rules = new RuleSet("shop", null,
+        [
+            new NamingRule("naming", "önek", RuleSeverity.Error, [], ["Contoso.*"])
+        ]);
+
+        var report = new ArchitectureAnalyzer().Analyze(graph, rules, "shop.sln");
+
+        var hit = Assert.Single(report.Violations);
+        Assert.Equal("LegacyReports", hit.From);
+    }
+
+    [Fact]
+    public void No_orphans_skips_entry_points_and_tests()
+    {
+        var graph = ProjectGraph.Create(
+            [
+                new ProjectNode("Cli", "Cli.csproj", "net10.0", "Microsoft.NET.Sdk", "Exe"),
+                new ProjectNode("Web", "Web.csproj", "net10.0", "Microsoft.NET.Sdk.Web"),
+                new ProjectNode("Core.Tests", "Core.Tests.csproj", "net10.0"),
+                new ProjectNode("Core", "Core.csproj", "net10.0"),
+                new ProjectNode("Legacy", "Legacy.csproj", "net10.0")
+            ],
+            [new ProjectEdge("Cli", "Core"), new ProjectEdge("Core.Tests", "Core")]);
+        var rules = new RuleSet("shop", null,
+        [
+            new NoOrphansRule("orphans", "sahipsiz", RuleSeverity.Error, [])
+        ]);
+
+        var report = new ArchitectureAnalyzer().Analyze(graph, rules, "shop.sln");
+
+        var hit = Assert.Single(report.Violations);
+        Assert.Equal("Legacy", hit.From);
+    }
+
+    [Fact]
+    public void Rule_coverage_reports_patterns_matching_no_project()
+    {
+        var graph = Graph(["Shop.Api", "Shop.Domain"], []);
+        var rules = new RuleSet("shop", null,
+        [
+            new DenyRule("typo", "yazım hatası", RuleSeverity.Error, ["*.Domian"], ["*.Api"], []),
+            new LayerRule("layers", "katman", RuleSeverity.Error, ["*.Api", "*.Domain"])
+        ]);
+
+        var unmatched = RuleCoverage.FindUnmatched(graph, rules);
+
+        var item = Assert.Single(unmatched);
+        Assert.Equal("typo", item.RuleId);
+        Assert.Equal("from", item.Field);
+        Assert.Equal("*.Domian", item.Pattern);
+    }
+
     private static ProjectGraph Graph(
         IEnumerable<string> names,
         IEnumerable<(string From, string To)> edges)
