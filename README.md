@@ -18,6 +18,9 @@
 - `sdk-deny` — yasak MSBuild SDK (`Microsoft.NET.Sdk.Web` vb.)
 - `naming` — proje adları verilen kalıplardan birine uymalı
 - `no-orphans` — kimsenin kullanmadığı kütüphane projesi (Exe, Web SDK ve test projeleri hariç)
+- `package-min-version` — paket sürümü verilen alt sınırın altına düşemez (bilinen açıklı sürümler için)
+- `--since <ref>` — yalnızca o git ref'inden beri değişen projelere dokunan ihlaller (PR odaklı)
+- `--format github` — GitHub Actions annotation'ları; ihlaller PR'da ilgili dosyanın üstünde görünür
 - `archon path` — iki proje arasındaki en kısa bağımlılık yolu
 - `archon validate --strict` — hiçbir projeye uymayan “ölü” kural kalıplarını yakalar
 - `.sln` ve .NET 10’un XML tabanlı `.slnx` biçimi
@@ -41,6 +44,7 @@ dotnet run --project src/Archon.Cli -- analyze samples/ContosoShop/ContosoShop.s
 dotnet run --project src/Archon.Cli -- analyze samples/ContosoShop/ContosoShop.sln --write-baseline artifacts/baseline.json
 dotnet run --project src/Archon.Cli -- diff artifacts/baseline.json samples/ContosoShop/ContosoShop.sln
 dotnet run --project src/Archon.Cli -- path Contoso.Catalog Contoso.Infrastructure
+dotnet run --project src/Archon.Cli -- analyze Archon.sln --rules archon.self.yaml --since origin/master --format github
 dotnet run --project src/Archon.Cli -- validate archon.yaml
 dotnet run --project src/Archon.Cli -- validate archon.self.yaml --strict
 dotnet run --project src/Archon.Cli -- analyze Archon.sln --rules archon.self.yaml

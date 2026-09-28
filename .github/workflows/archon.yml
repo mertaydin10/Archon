@@ -9,6 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.x"
@@ -18,6 +20,10 @@ jobs:
 
       - name: Kural kalıplarını denetle
         run: dotnet run --project src/Archon.Cli -- validate archon.self.yaml --strict
+
+      - name: PR'da değişen projeleri işaretle
+        if: github.event_name == 'pull_request'
+        run: dotnet run --project src/Archon.Cli -- analyze Archon.sln --rules archon.self.yaml --since "origin/${{ github.base_ref }}" --format github
 
       - name: Kendi mimarisini doğrula
         run: dotnet run --project src/Archon.Cli -- analyze Archon.sln --rules archon.self.yaml --format markdown --out artifacts/archon.md

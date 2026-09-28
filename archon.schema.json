@@ -45,7 +45,8 @@
               "package-allow",
               "sdk-deny",
               "naming",
-              "no-orphans"
+              "no-orphans",
+              "package-min-version"
             ]
           },
           "description": { "type": "string" },
@@ -57,6 +58,7 @@
           "patterns": { "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }] },
           "layers": { "type": "array", "items": { "type": "string" }, "minItems": 2 },
           "max": { "type": "integer", "minimum": 0 },
+          "min": { "type": "string", "pattern": "^[0-9]" },
           "except": {
             "type": "array",
             "items": {
