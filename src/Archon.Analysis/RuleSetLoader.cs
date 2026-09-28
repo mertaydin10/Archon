@@ -198,6 +198,15 @@ public sealed class RuleSetLoader
                 description,
                 severity,
                 Flatten(document.From)),
+            "package-min-version" => new PackageMinVersionRule(
+                document.Id.Trim(),
+                description,
+                severity,
+                Flatten(document.From),
+                ReadPatterns(document.Packages ?? document.To, "packages"),
+                PackageVersion.TryNormalize(document.Min, out var min)
+                    ? min
+                    : throw new InvalidOperationException($"Rule '{document.Id}' must set a numeric 'min' version.")),
             _ => throw new InvalidOperationException($"Unknown rule kind '{document.Kind}' in '{document.Id}'.")
         };
     }
@@ -272,6 +281,7 @@ public sealed class RuleSetLoader
         public object? Patterns { get; set; }
         public List<string>? Layers { get; set; }
         public int? Max { get; set; }
+        public string? Min { get; set; }
         public List<ExceptionDocument>? Except { get; set; }
     }
 
