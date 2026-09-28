@@ -13,6 +13,23 @@ public static class ReportFilter
 
         return report with { Violations = remaining };
     }
+
+    public static AnalysisReport Touching(AnalysisReport report, IReadOnlySet<string>? projects)
+    {
+        if (projects is null)
+            return report;
+
+        var remaining = report.Violations
+            .Where(v => Touches(v, projects))
+            .ToArray();
+
+        return report with { Violations = remaining };
+    }
+
+    private static bool Touches(Violation violation, IReadOnlySet<string> projects) =>
+        (violation.From is not null && projects.Contains(violation.From))
+        || (violation.To is not null && projects.Contains(violation.To))
+        || (violation.Cycle?.Any(projects.Contains) ?? false);
 }
 
 public sealed record ViolationDiff(
