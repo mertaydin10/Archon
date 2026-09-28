@@ -570,6 +570,55 @@ public sealed class ArchitectureAnalyzerTests
         Assert.Equal("*.Domian", item.Pattern);
     }
 
+    [Theory]
+    [InlineData("12.0.3", "13.0.1", -1)]
+    [InlineData("13.0.1", "13.0.1", 0)]
+    [InlineData("13.0", "13.0.0", 0)]
+    [InlineData("13.0.3", "13.0.1", 1)]
+    [InlineData("13.0.1-beta1", "13.0.1", -1)]
+    [InlineData("10.0.0", "9.9.9", 1)]
+    public void Package_version_compare_orders_semver(string left, string right, int expected)
+    {
+        Assert.Equal(expected, Math.Sign(PackageVersion.Compare(left, right)));
+    }
+
+    [Fact]
+    public void Package_min_version_flags_old_versions_only()
+    {
+        var graph = Graph(["Catalog", "Domain", "Api"], []);
+        var packages = new PackageIndex(
+        [
+            new PackageReference("Catalog", "Newtonsoft.Json", "12.0.3"),
+            new PackageReference("Domain", "Newtonsoft.Json", "[13.0.3]"),
+            new PackageReference("Api", "Newtonsoft.Json", null)
+        ]);
+        var rules = new RuleSet("shop", null,
+        [
+            new PackageMinVersionRule("min", "eski", RuleSeverity.Error, [], ["Newtonsoft.Json"], "13.0.1")
+        ]);
+
+        var report = new ArchitectureAnalyzer().Analyze(graph, rules, "shop.sln", packages: packages);
+
+        var hit = Assert.Single(report.Violations);
+        Assert.Equal("Catalog", hit.From);
+    }
+
+    [Fact]
+    public void Touching_filter_keeps_violations_on_changed_projects()
+    {
+        var graph = Graph(["A", "B", "C"], []);
+        var report = new AnalysisReport("shop", "shop.sln", graph,
+        [
+            new Violation("r1", RuleSeverity.Error, "", "A", "B"),
+            new Violation("r2", RuleSeverity.Error, "", "C", null),
+            new Violation("r3", RuleSeverity.Error, "", "X", "Y", ["X", "B", "Y"])
+        ]);
+
+        var filtered = ReportFilter.Touching(report, new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "b" });
+
+        Assert.Equal(["r1", "r3"], filtered.Violations.Select(v => v.RuleId));
+    }
+
     private static ProjectGraph Graph(
         IEnumerable<string> names,
         IEnumerable<(string From, string To)> edges)

@@ -449,6 +449,71 @@ public sealed class SolutionAndRulesTests
     }
 
     [Fact]
+    public void Yaml_parses_package_min_version()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "archon-min-" + Guid.NewGuid().ToString("N") + ".yaml");
+        File.WriteAllText(path,
+            """
+            name: Shop
+            rules:
+              - id: min
+                kind: package-min-version
+                packages: Newtonsoft.Json
+                min: "13.0.1"
+            """);
+        try
+        {
+            var rule = Assert.IsType<PackageMinVersionRule>(Assert.Single(new RuleSetLoader().Load(path).Rules));
+            Assert.Equal("13.0.1", rule.Min);
+            Assert.Equal("Newtonsoft.Json", Assert.Single(rule.Packages));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Changed_projects_map_files_to_deepest_project_directory()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "archon-changed-" + Guid.NewGuid().ToString("N"));
+        var graph = ProjectGraph.Create(
+            [
+                new ProjectNode("Shop", Path.Combine(root, "src", "Shop", "Shop.csproj"), "net10.0"),
+                new ProjectNode("Shop.Tests", Path.Combine(root, "src", "Shop", "Tests", "Shop.Tests.csproj"), "net10.0"),
+                new ProjectNode("Other", Path.Combine(root, "src", "Other", "Other.csproj"), "net10.0")
+            ],
+            []);
+
+        var changed = ChangedProjects.Resolve(graph,
+        [
+            Path.Combine(root, "src", "Shop", "Tests", "FooTests.cs"),
+            Path.Combine(root, "README.md")
+        ]);
+
+        Assert.Equal(["Shop.Tests"], changed);
+    }
+
+    [Fact]
+    public void Github_annotations_point_to_file_or_project()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "archon-gh");
+        var graph = ProjectGraph.Create(
+            [new ProjectNode("Catalog", Path.Combine(root, "src", "Catalog", "Catalog.csproj"), "net10.0")],
+            []);
+        var report = new AnalysisReport("Demo", Path.Combine(root, "demo.sln"), graph,
+        [
+            new Violation("ns", RuleSeverity.Error, "import yasak: a, b", "Catalog", "Payments", FilePath: "src/Catalog/Leak.cs", Line: 3),
+            new Violation("fan", RuleSeverity.Warning, "çok fazla", "Catalog", "4")
+        ]);
+
+        var output = GithubAnnotationWriter.Write(report, "samples");
+
+        Assert.Contains("::error file=samples/src/Catalog/Leak.cs,line=3,title=Archon ns::import yasak: a, b", output, StringComparison.Ordinal);
+        Assert.Contains("::warning file=samples/src/Catalog/Catalog.csproj,title=Archon fan::çok fazla", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Loader_reads_sdk_attribute()
     {
         var root = Path.Combine(Path.GetTempPath(), "archon-sdk-" + Guid.NewGuid().ToString("N"));
