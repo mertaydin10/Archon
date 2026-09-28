@@ -5,3 +5,10 @@ rules:
     from: "*.Domain"
     packages:
       - Newtonsoft.Json
+
+  - id: newtonsoft-min-version
+    kind: package-min-version
+    description: Newtonsoft.Json 13.0.1 altı bilinen güvenlik açığı taşır.
+    packages:
+      - Newtonsoft.Json
+    min: "13.0.1"

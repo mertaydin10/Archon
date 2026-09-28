@@ -147,5 +147,11 @@ internal sealed class InitCommand : Command<InitSettings>
 
           - id: no-orphans
             kind: no-orphans
+
+          - id: newtonsoft-min-version
+            kind: package-min-version
+            packages:
+              - Newtonsoft.Json
+            min: "13.0.1"
         """;
 }
