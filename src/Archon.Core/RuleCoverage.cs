@@ -41,6 +41,7 @@ public static class RuleCoverage
             TfmAlignedRule r => Tag("from", r.From),
             NamingRule r => Tag("from", r.From),
             NoOrphansRule r => Tag("from", r.From),
+            PackageMinVersionRule r => Tag("from", r.From),
             _ => []
         };
 

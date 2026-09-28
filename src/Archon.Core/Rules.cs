@@ -151,6 +151,14 @@ public sealed record NoOrphansRule(
     RuleSeverity Severity,
     IReadOnlyList<string> From) : ArchitectureRule(Id, Description, Severity);
 
+public sealed record PackageMinVersionRule(
+    string Id,
+    string Description,
+    RuleSeverity Severity,
+    IReadOnlyList<string> From,
+    IReadOnlyList<string> Packages,
+    string Min) : ArchitectureRule(Id, Description, Severity);
+
 public sealed record RuleSet(
     string Name,
     string? SolutionPath,

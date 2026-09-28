@@ -78,6 +78,9 @@ public sealed class ArchitectureAnalyzer
                 case NoOrphansRule orphans:
                     violations.AddRange(EvaluateOrphans(graph, orphans));
                     break;
+                case PackageMinVersionRule minVersion:
+                    violations.AddRange(EvaluatePackageMinVersion(minVersion, packages));
+                    break;
             }
         }
 
@@ -505,6 +508,28 @@ public sealed class ArchitectureAnalyzer
                 $"{rule.Description} {project.Name} hiçbir proje tarafından kullanılmıyor ve giriş noktası değil.",
                 project.Name,
                 null);
+        }
+    }
+
+    private static IEnumerable<Violation> EvaluatePackageMinVersion(PackageMinVersionRule rule, PackageIndex packages)
+    {
+        foreach (var package in packages.Packages)
+        {
+            if (rule.From.Count > 0 && !MatchesAny(rule.From, package.ProjectName))
+                continue;
+            if (!MatchesAny(rule.Packages, package.PackageId))
+                continue;
+            if (!PackageVersion.TryNormalize(package.Version, out var version))
+                continue;
+            if (PackageVersion.Compare(version, rule.Min) >= 0)
+                continue;
+
+            yield return new Violation(
+                rule.Id,
+                rule.Severity,
+                $"{rule.Description} {package.ProjectName} → {package.PackageId} {version} (en az {rule.Min}).",
+                package.ProjectName,
+                package.PackageId);
         }
     }
 
