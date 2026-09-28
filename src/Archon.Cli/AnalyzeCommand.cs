@@ -17,7 +17,7 @@ internal sealed class AnalyzeSettings : CommandSettings
     public string? Rules { get; init; }
 
     [CommandOption("-f|--format <FORMAT>")]
-    [Description("Çıktı biçimi: console, json, html, sarif, markdown, junit")]
+    [Description("Çıktı biçimi: console, json, html, sarif, markdown, junit, github")]
     public string Format { get; init; } = "console";
 
     [CommandOption("-o|--out <FILE>")]
@@ -43,6 +43,10 @@ internal sealed class AnalyzeSettings : CommandSettings
     [CommandOption("--only <RULE>")]
     [Description("Yalnızca eşleşen kural kimliklerini göster. Glob kabul eder.")]
     public string[]? Only { get; init; }
+
+    [CommandOption("--since <REF>")]
+    [Description("Yalnızca bu git ref'inden beri değişen projelere dokunan ihlalleri göster.")]
+    public string? Since { get; init; }
 }
 
 internal sealed class AnalyzeCommand : Command<AnalyzeSettings>
@@ -71,6 +75,16 @@ internal sealed class AnalyzeCommand : Command<AnalyzeSettings>
                 report = BaselineFilter.Apply(report, BaselineFile.LoadKeys(settings.Baseline));
 
             report = ReportFilter.Only(report, settings.Only);
+
+            if (!string.IsNullOrWhiteSpace(settings.Since))
+            {
+                var solutionDir = Path.GetDirectoryName(workspace.SolutionPath) ?? Environment.CurrentDirectory;
+                var files = ChangedProjects.FromGit(solutionDir, settings.Since.Trim());
+                var changed = ChangedProjects.Resolve(workspace.Graph, files);
+                report = ReportFilter.Touching(report, changed);
+                if (!IsMachineFormat(settings.Format))
+                    AnsiConsole.MarkupLine($"[grey]{Markup.Escape(settings.Since)} sonrası değişen proje: {changed.Count}[/]");
+            }
 
             WriteReport(report, settings);
             return report.ShouldFail(settings.FailOnWarning) ? 1 : 0;
@@ -111,6 +125,12 @@ internal sealed class AnalyzeCommand : Command<AnalyzeSettings>
                 WriteFileOrStdout(junitPath, JunitReportWriter.Write(report));
                 AnsiConsole.MarkupLine($"[grey]JUnit rapor:[/] {Markup.Escape(Path.GetFullPath(junitPath))}");
                 break;
+            case "github":
+                var prefix = Path.GetRelativePath(
+                    Environment.CurrentDirectory,
+                    Path.GetDirectoryName(report.SolutionPath) ?? Environment.CurrentDirectory);
+                WriteFileOrStdout(settings.Output, GithubAnnotationWriter.Write(report, prefix));
+                break;
             case "console":
                 ConsoleReportWriter.Write(report);
                 break;
@@ -118,6 +138,9 @@ internal sealed class AnalyzeCommand : Command<AnalyzeSettings>
                 throw new InvalidOperationException($"Bilinmeyen format '{settings.Format}'.");
         }
     }
+
+    private static bool IsMachineFormat(string format) =>
+        format.Trim().ToLowerInvariant() is "json" or "github";
 
     private static void WriteFileOrStdout(string? output, string content)
     {
