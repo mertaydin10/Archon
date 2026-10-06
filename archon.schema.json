@@ -46,7 +46,8 @@
               "sdk-deny",
               "naming",
               "no-orphans",
-              "package-min-version"
+              "package-min-version",
+              "test-isolation"
             ]
           },
           "description": { "type": "string" },

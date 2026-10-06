@@ -18,6 +18,7 @@
 - `sdk-deny` — yasak MSBuild SDK (`Microsoft.NET.Sdk.Web` vb.)
 - `naming` — proje adları verilen kalıplardan birine uymalı
 - `no-orphans` — kimsenin kullanmadığı kütüphane projesi (Exe, Web SDK ve test projeleri hariç)
+- `test-isolation` — üretim kodu test projesine bağlanamaz (`patterns` boşsa `*Tests*` ve `*.Test`; testten teste izinli)
 - `package-min-version` — paket sürümü verilen alt sınırın altına düşemez (bilinen açıklı sürümler için)
 - `--since <ref>` — yalnızca o git ref'inden beri değişen projelere dokunan ihlaller (PR odaklı)
 - `--format github` — GitHub Actions annotation'ları; ihlaller PR'da ilgili dosyanın üstünde görünür

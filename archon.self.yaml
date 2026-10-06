@@ -10,14 +10,11 @@ rules:
       - "*.Analysis"
       - "*.Core"
 
-  - id: src-must-not-depend-on-tests
-    kind: deny
+  - id: tests-are-leaves
+    kind: test-isolation
     description: Üretim kodu test projelerine bağlanamaz.
-    from:
-      - "Archon.Core"
-      - "Archon.Analysis"
-      - "Archon.Cli"
-    to: "*Tests*"
+    patterns:
+      - "*Tests*"
 
   - id: core-no-cli-packages
     kind: package-deny

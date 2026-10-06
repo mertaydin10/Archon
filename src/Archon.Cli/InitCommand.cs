@@ -153,5 +153,9 @@ internal sealed class InitCommand : Command<InitSettings>
             packages:
               - Newtonsoft.Json
             min: "13.0.1"
+
+          - id: tests-are-leaves
+            kind: test-isolation
+            description: Üretim kodu test projelerine bağlanamaz.
         """;
 }
