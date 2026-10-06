@@ -207,6 +207,13 @@ public sealed class RuleSetLoader
                 PackageVersion.TryNormalize(document.Min, out var min)
                     ? min
                     : throw new InvalidOperationException($"Rule '{document.Id}' must set a numeric 'min' version.")),
+            "test-isolation" => new TestIsolationRule(
+                document.Id.Trim(),
+                description,
+                severity,
+                Flatten(document.From),
+                Flatten(document.Patterns),
+                ReadExceptions(document.Except)),
             _ => throw new InvalidOperationException($"Unknown rule kind '{document.Kind}' in '{document.Id}'.")
         };
     }

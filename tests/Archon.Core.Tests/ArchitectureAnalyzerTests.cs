@@ -583,6 +583,50 @@ public sealed class ArchitectureAnalyzerTests
     }
 
     [Fact]
+    public void Test_isolation_flags_production_to_test_edges_only()
+    {
+        var graph = Graph(
+            ["Shop.Api", "Shop.Tests", "Shop.Tests.Shared", "Shop.Test"],
+            [
+                ("Shop.Api", "Shop.Tests"),
+                ("Shop.Tests", "Shop.Api"),
+                ("Shop.Tests", "Shop.Tests.Shared"),
+                ("Shop.Api", "Shop.Test")
+            ]);
+        var rules = new RuleSet("shop", null,
+        [
+            new TestIsolationRule("leaves", "test yaprağı", RuleSeverity.Error, [], [], [])
+        ]);
+
+        var report = new ArchitectureAnalyzer().Analyze(graph, rules, "shop.sln");
+
+        Assert.Equal(["Shop.Test", "Shop.Tests"], report.Violations.Select(v => v.To).OrderBy(x => x, StringComparer.Ordinal));
+        Assert.All(report.Violations, v => Assert.Equal("Shop.Api", v.From));
+    }
+
+    [Fact]
+    public void Test_isolation_honors_exception_and_from_filter()
+    {
+        var graph = Graph(
+            ["Shop.Api", "Shop.Worker", "Shop.Tests"],
+            [("Shop.Api", "Shop.Tests"), ("Shop.Worker", "Shop.Tests")]);
+        var rules = new RuleSet("shop", null,
+        [
+            new TestIsolationRule(
+                "leaves",
+                "test yaprağı",
+                RuleSeverity.Error,
+                ["Shop.Api"],
+                ["*Tests*"],
+                [new RuleException("Shop.Api", "Shop.Tests")])
+        ]);
+
+        var report = new ArchitectureAnalyzer().Analyze(graph, rules, "shop.sln");
+
+        Assert.Empty(report.Violations);
+    }
+
+    [Fact]
     public void Package_min_version_flags_old_versions_only()
     {
         var graph = Graph(["Catalog", "Domain", "Api"], []);

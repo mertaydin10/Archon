@@ -449,6 +449,35 @@ public sealed class SolutionAndRulesTests
     }
 
     [Fact]
+    public void Yaml_parses_test_isolation()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "archon-tests-" + Guid.NewGuid().ToString("N") + ".yaml");
+        File.WriteAllText(path,
+            """
+            name: Shop
+            rules:
+              - id: leaves
+                kind: test-isolation
+                from: "*.Api"
+                patterns: "*.Tests"
+                except:
+                  - from: Shop.Api
+                    to: Shop.Api.Tests
+            """);
+        try
+        {
+            var rule = Assert.IsType<TestIsolationRule>(Assert.Single(new RuleSetLoader().Load(path).Rules));
+            Assert.Equal("*.Api", Assert.Single(rule.From));
+            Assert.Equal("*.Tests", Assert.Single(rule.Patterns));
+            Assert.Equal("Shop.Api", Assert.Single(rule.Exceptions).From);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void Yaml_parses_package_min_version()
     {
         var path = Path.Combine(Path.GetTempPath(), "archon-min-" + Guid.NewGuid().ToString("N") + ".yaml");

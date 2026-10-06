@@ -81,6 +81,9 @@ public sealed class ArchitectureAnalyzer
                 case PackageMinVersionRule minVersion:
                     violations.AddRange(EvaluatePackageMinVersion(minVersion, packages));
                     break;
+                case TestIsolationRule isolation:
+                    violations.AddRange(EvaluateTestIsolation(graph, isolation));
+                    break;
             }
         }
 
@@ -530,6 +533,27 @@ public sealed class ArchitectureAnalyzer
                 $"{rule.Description} {package.ProjectName} → {package.PackageId} {version} (en az {rule.Min}).",
                 package.ProjectName,
                 package.PackageId);
+        }
+    }
+
+    private static IEnumerable<Violation> EvaluateTestIsolation(ProjectGraph graph, TestIsolationRule rule)
+    {
+        var patterns = rule.Patterns.Count > 0 ? rule.Patterns : TestIsolationRule.DefaultPatterns;
+        foreach (var edge in graph.Edges)
+        {
+            if (rule.From.Count > 0 && !MatchesAny(rule.From, edge.From))
+                continue;
+            if (!MatchesAny(patterns, edge.To) || MatchesAny(patterns, edge.From))
+                continue;
+            if (IsExcepted(rule.Exceptions, edge.From, edge.To))
+                continue;
+
+            yield return new Violation(
+                rule.Id,
+                rule.Severity,
+                $"{rule.Description} {edge.From} test projesi {edge.To} projesine bağlanıyor.",
+                edge.From,
+                edge.To);
         }
     }
 

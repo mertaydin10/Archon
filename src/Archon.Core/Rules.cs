@@ -159,6 +159,17 @@ public sealed record PackageMinVersionRule(
     IReadOnlyList<string> Packages,
     string Min) : ArchitectureRule(Id, Description, Severity);
 
+public sealed record TestIsolationRule(
+    string Id,
+    string Description,
+    RuleSeverity Severity,
+    IReadOnlyList<string> From,
+    IReadOnlyList<string> Patterns,
+    IReadOnlyList<RuleException> Exceptions) : ArchitectureRule(Id, Description, Severity)
+{
+    public static readonly string[] DefaultPatterns = ["*Tests*", "*.Test"];
+}
+
 public sealed record RuleSet(
     string Name,
     string? SolutionPath,

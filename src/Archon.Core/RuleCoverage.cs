@@ -42,6 +42,7 @@ public static class RuleCoverage
             NamingRule r => Tag("from", r.From),
             NoOrphansRule r => Tag("from", r.From),
             PackageMinVersionRule r => Tag("from", r.From),
+            TestIsolationRule r => Tag("from", r.From).Concat(Tag("patterns", r.Patterns)),
             _ => []
         };
 
